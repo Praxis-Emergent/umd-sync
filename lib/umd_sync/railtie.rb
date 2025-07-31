@@ -54,15 +54,12 @@ module UmdSync
       flag_file = Rails.root.join('tmp', '.umd_sync_welcomed')
       return if File.exist?(flag_file)
       
-      # Check if this is a fresh UmdSync setup (no partials directory or empty)
-      partials_dir = Rails.root.join('app', 'views', 'umd_sync')
-      return if Dir.exist?(partials_dir) && !Dir.empty?(partials_dir)
-      
       # Create the flag file to show this only once
       FileUtils.mkdir_p(File.dirname(flag_file))
       File.write(flag_file, Time.current.to_s)
       
       puts <<~WELCOME
+
         📦 UmdSync Installed 📦
 
         Next Step: rails umd_sync:init
@@ -71,6 +68,7 @@ module UmdSync
           rails "umd_sync:install[react,18.3.1]"
           rails "umd_sync:install[vue,3.3.4]"
           rails "umd_sync:install[lodash,4.17.21]"
+
       WELCOME
     end
   end

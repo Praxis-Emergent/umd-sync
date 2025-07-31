@@ -81,7 +81,10 @@ module UmdSync
       # 2. Create HelloWorld component
       create_hello_world_component!
       
-      # 3. Offer demo route
+      # 3. Build the bundle so component is immediately ready
+      build_bundle!
+      
+      # 4. Offer demo route
       offer_demo_route!
     end
 
@@ -167,6 +170,25 @@ module UmdSync
       
       File.write(hello_world_path, hello_world_content)
       puts "✓ Created HelloWorld.jsx component"
+    end
+
+    # Build the webpack bundle
+    def build_bundle!
+      puts "📦 Building webpack bundle..."
+      
+      unless system('which yarn > /dev/null 2>&1')
+        puts "⚠️  yarn not found, skipping build"
+        return
+      end
+      
+      # Run yarn build
+      success = system('yarn build > /dev/null 2>&1')
+      
+      if success
+        puts "✓ Bundle built successfully"
+      else
+        puts "⚠️  Build failed - you may need to run 'yarn build' manually"
+      end
     end
 
     # Offer to create a demo route for React showcase
@@ -914,47 +936,16 @@ module UmdSync
       view_path = File.join(views_dir, 'react.html.erb')
       
       view_content = <<~ERB
-        <% content_for :title, "UmdSync React Demo" %>
+        <% content_for :title, "UmdSync Demo" %>
         
-        <div class="container mx-auto px-4 py-8">
-          <div class="max-w-2xl mx-auto text-center">
-            <h1 class="text-4xl font-bold text-gray-900 mb-6">
-              🎉 UmdSync React Demo
-            </h1>
-            
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-              <h2 class="text-xl font-semibold text-blue-900 mb-4">
-                Your HelloWorld Component
-              </h2>
-              
-              <!-- Render the React component using UmdSync helper -->
-              <%= react_component('HelloWorld') %>
-            </div>
-            
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-left">
-              <h3 class="text-lg font-semibold text-gray-900 mb-3">
-                How this works:
-              </h3>
-              <ul class="space-y-2 text-gray-700">
-                <li>• React and React-DOM are loaded via UMD partials</li>
-                <li>• Your components are bundled with webpack</li>
-                <li>• The <code class="bg-gray-200 px-1 rounded">react_component</code> helper renders them</li>
-                <li>• Everything integrates seamlessly with Rails 8</li>
-              </ul>
-              
-              <div class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400">
-                <p class="text-sm text-yellow-800">
-                  <strong>Next steps:</strong> Edit <code>app/javascript/umd_sync/components/HelloWorld.jsx</code> 
-                  and run <code>yarn build</code> to see your changes!
-                </p>
-              </div>
-            </div>
-            
-            <div class="mt-8">
-              <a href="/" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:outline-none focus:border-blue-700 focus:ring focus:ring-blue-200 active:bg-blue-600 disabled:opacity-25 transition">
-                ← Back to App
-              </a>
-            </div>
+        <div style="padding: 40px; text-align: center;">
+          <h1>🎉 UmdSync Demo</h1>
+          
+          <!-- Render the React component using UmdSync helper -->
+          <%= react_component('HelloWorld') %>
+          
+          <div style="margin-top: 20px;">
+            <a href="/">← Back to App</a>
           </div>
         </div>
       ERB
