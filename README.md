@@ -31,9 +31,9 @@ Modern Rails developers face a painful choice:
 ### The UmdSync Solution
 ```bash
 # Instead of complex webpack configuration:
-rails umd_sync:install[react]
-rails umd_sync:install[lodash]
-rails umd_sync:install[vue]
+rails "umd_sync:install[react]"
+rails "umd_sync:install[lodash]"
+rails "umd_sync:install[vue]"
 ```
 
 **Result**: Zero webpack configuration, instant builds, access to hundreds of UMD packages.
@@ -43,8 +43,7 @@ rails umd_sync:install[vue]
 ✅ **Tested against Rails 8**  
 ✅ **Compatible with Rails 8 asset pipeline**  
 ✅ **Optimized for Hotwire/Turbo workflows**  
-✅ **Zero-config React islands**  
-✅ **Backward compatible with Rails 7+**
+✅ **Zero-config React islands**
 
 ## Core Features
 
@@ -79,17 +78,8 @@ rails umd_sync:init
 
 ### Install React
 ```bash
-rails umd_sync:install[react]
-rails umd_sync:install[react-dom]
-```
-
-### Add to your layout
-```erb
-<!-- app/views/layouts/application.html.erb -->
-<head>
-  <%= umd_partials %>
-  <%= umd_bundle_script %>
-</head>
+rails "umd_sync:install[react,18.3.1]"
+rails "umd_sync:install[react-dom,18.3.1]"
 ```
 
 ### Render React Components
@@ -106,8 +96,6 @@ import React from 'react';
 function DashboardApp({ userId }) {
   return <div>Welcome user {userId}!</div>;
 }
-
-window.umd_sync = { DashboardApp };
 ```
 
 ## CLI Commands
@@ -120,17 +108,17 @@ window.umd_sync = { DashboardApp };
 rails umd_sync:init
 
 # Install packages (adds to package.json + creates UMD partial)
-rails umd_sync:install[react]
-rails umd_sync:install[react,18.3.1]        # With specific version
-rails umd_sync:install[lodash]
+rails "umd_sync:install[react]"
+rails "umd_sync:install[react,18.3.1]"       # With specific version
+rails "umd_sync:install[lodash]"
 
 # Update packages (updates package.json + refreshes UMD partial)
-rails umd_sync:update[react]
-rails umd_sync:update[react,18.3.1]         # To specific version
+rails "umd_sync:update[react]"
+rails "umd_sync:update[react,18.3.1]"       # To specific version
 
 # Remove packages (removes from package.json + deletes UMD partial)
-rails umd_sync:remove[react]
-rails umd_sync:remove[lodash]
+rails "umd_sync:remove[react]"
+rails "umd_sync:remove[lodash]"
 
 # Sync all packages with current package.json
 rails umd_sync:sync
@@ -143,22 +131,6 @@ rails umd_sync:clean
 
 # Show configuration
 rails umd_sync:config
-```
-
-#### Standalone CLI
-```bash
-# If you have the gem installed globally
-umd-sync init
-umd-sync install react
-umd-sync install react 18.3.1      # With version (space-separated)
-umd-sync update react
-umd-sync update react 18.3.1       # To specific version
-umd-sync remove react              # Remove package
-umd-sync sync
-umd-sync status
-umd-sync clean
-umd-sync config
-umd-sync version
 ```
 
 ### ⚡ Quick Reference
@@ -186,11 +158,11 @@ end
 
 ### Helpers
 
-#### `umd_partials`
-Renders all UMD library scripts for installed packages.
+#### `umd_sync`
+Single helper that includes all UMD partials and your webpack bundle.
 
 ```erb
-<%= umd_partials %>
+<%= umd_sync %>
 ```
 
 #### `react_component(name, props, options)`
@@ -204,13 +176,6 @@ Renders a React component with Turbo-compatible lifecycle.
   container_id: 'profile-widget',
   namespace: 'window.MyApp'
 }) %>
-```
-
-#### `umd_complete`
-One-liner that includes all UMD partials and your webpack bundle.
-
-```erb
-<%= umd_complete %>
 ```
 
 ## Advanced Usage
@@ -323,9 +288,7 @@ rails umd_sync:install[chart.js]
 
 ```erb
 <!-- app/views/dashboard/show.html.erb -->
-<%= render 'shared/umd/react' %>
-<%= render 'shared/umd/react_dom' %>
-<%= render 'shared/umd/chart_js' %>
+<%= umd_sync %>
 
 <div id="dashboard-root"></div>
 

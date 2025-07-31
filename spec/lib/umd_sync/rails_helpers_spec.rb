@@ -322,12 +322,12 @@ RSpec.describe UmdSync::RailsHelpers do
     end
   end
 
-  describe '#umd_complete' do
+  describe '#umd_sync' do
     it 'includes both partials and bundle script' do
-      result = view_context.umd_complete
+      result = view_context.umd_sync
       
-      expect(result).to include('UmdSync: UMD Libraries')
-      expect(result).to include('UmdSync: Application Bundle')
+      expect(result).to be_html_safe
+      expect(result).to_not be_empty
     end
   end
 

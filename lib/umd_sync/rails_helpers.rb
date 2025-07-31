@@ -184,16 +184,7 @@ module UmdSync
       end
     end
 
-    # Complete UMD setup: partials + bundle
-    # Usage: <%= umd_complete %>
-    def umd_complete
-      output = []
-      output << "<!-- UmdSync: UMD Libraries -->"
-      output << umd_partials
-      output << "<!-- UmdSync: Application Bundle -->"
-      output << umd_bundle_script
-      output.join("\n").html_safe
-    end
+
 
     # Debug info helper - shows UmdSync status in development
     def umd_debug_info
