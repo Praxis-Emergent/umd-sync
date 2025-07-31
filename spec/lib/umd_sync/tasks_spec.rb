@@ -1,0 +1,145 @@
+require 'spec_helper'
+require 'rake'
+
+RSpec.describe "UmdSync Rake Tasks" do
+  before(:all) do
+    # Load the tasks
+    load File.expand_path('../../../../lib/umd_sync/tasks.rb', __FILE__)
+  end
+
+  before(:each) do
+    # Reset invoked tasks
+    Rake.application.tasks.each(&:reenable)
+  end
+
+  describe "umd_sync:init" do
+    it "calls UmdSync.init!" do
+      expect(UmdSync).to receive(:init!)
+      
+      Rake.application.invoke_task("umd_sync:init")
+    end
+  end
+
+  describe "umd_sync:install" do
+    context "with package name only" do
+      it "calls UmdSync.install! with package name" do
+        expect(UmdSync).to receive(:install!).with("react", nil)
+        
+        Rake.application.invoke_task("umd_sync:install[react]")
+      end
+    end
+
+    context "with package name and version" do
+      it "calls UmdSync.install! with both arguments" do
+        expect(UmdSync).to receive(:install!).with("react", "18.3.1")
+        
+        Rake.application.invoke_task("umd_sync:install[react,18.3.1]")
+      end
+    end
+
+    context "without package name" do
+      it "prints error message and exits" do
+        expect do
+          expect do
+            Rake.application.invoke_task("umd_sync:install[]")
+          end.to output(/Please specify a package name/).to_stdout
+        end.to raise_error(SystemExit)
+      end
+    end
+  end
+
+  describe "umd_sync:update" do
+    context "with package name only" do
+      it "calls UmdSync.update! with package name" do
+        expect(UmdSync).to receive(:update!).with("react", nil)
+        
+        Rake.application.invoke_task("umd_sync:update[react]")
+      end
+    end
+
+    context "with package name and version" do
+      it "calls UmdSync.update! with both arguments" do
+        expect(UmdSync).to receive(:update!).with("react", "18.3.1")
+        
+        Rake.application.invoke_task("umd_sync:update[react,18.3.1]")
+      end
+    end
+
+    context "without package name" do
+      it "prints error message and exits" do
+        expect do
+          expect do
+            Rake.application.invoke_task("umd_sync:update[]")
+          end.to output(/Please specify a package name/).to_stdout
+        end.to raise_error(SystemExit)
+      end
+    end
+  end
+
+  describe "umd_sync:remove" do
+    context "with package name" do
+      it "calls UmdSync.remove! with package name" do
+        expect(UmdSync).to receive(:remove!).with("react")
+        
+        Rake.application.invoke_task("umd_sync:remove[react]")
+      end
+    end
+
+    context "without package name" do
+      it "prints error message and exits" do
+        expect do
+          expect do
+            Rake.application.invoke_task("umd_sync:remove[]")
+          end.to output(/Please specify a package name/).to_stdout
+        end.to raise_error(SystemExit)
+      end
+    end
+  end
+
+  describe "umd_sync:sync" do
+    it "calls UmdSync.sync!" do
+      expect(UmdSync).to receive(:sync!)
+      
+      Rake.application.invoke_task("umd_sync:sync")
+    end
+  end
+
+  describe "umd_sync:status" do
+    it "calls UmdSync.status!" do
+      expect(UmdSync).to receive(:status!)
+      
+      Rake.application.invoke_task("umd_sync:status")
+    end
+  end
+
+  describe "umd_sync:clean" do
+    it "calls UmdSync.clean!" do
+      expect(UmdSync).to receive(:clean!)
+      
+      Rake.application.invoke_task("umd_sync:clean")
+    end
+  end
+
+  describe "umd_sync:config" do
+    it "displays configuration information" do
+      config = double('configuration')
+      allow(UmdSync).to receive(:configuration).and_return(config)
+      allow(config).to receive_messages(
+        package_json_path: '/path/to/package.json',
+        partials_dir: '/path/to/partials',
+        webpack_config_path: '/path/to/webpack.config.js',
+        supported_cdns: ['https://unpkg.com'],
+        global_name_overrides: { 'react' => 'React' }
+      )
+
+      expect { Rake.application.invoke_task("umd_sync:config") }.to output(
+        a_string_including("📊 UmdSync Configuration")
+        .and(including("Package.json path: /path/to/package.json"))
+        .and(including("Partials directory: /path/to/partials"))
+        .and(including("Webpack config path: /path/to/webpack.config.js"))
+        .and(including("Supported CDNs: https://unpkg.com"))
+        .and(including("Global name overrides: 1 configured"))
+      ).to_stdout
+    end
+  end
+end 

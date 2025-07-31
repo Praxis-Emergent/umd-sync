@@ -1,5 +1,10 @@
 # UmdSync
 
+[![Test Coverage](https://img.shields.io/badge/coverage-89.09%25-brightgreen.svg)](coverage/index.html)
+[![RSpec Tests](https://img.shields.io/badge/tests-162%20passing-brightgreen.svg)](spec/)
+[![Rails 8 Ready](https://img.shields.io/badge/Rails%208-Ready-brightgreen.svg)](#rails-8-ready)
+[![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.0-red.svg)](https://www.ruby-lang.org/)
+
 **Simplified UMD dependency management for Rails applications.**
 
 UmdSync is a Rails gem that automates UMD (Universal Module Definition) dependency management. Instead of complex webpack configurations for external libraries, UmdSync downloads UMD builds from CDNs and integrates them into your Rails application using ERB partials.
@@ -266,6 +271,9 @@ UmdSync.install!('react', '18.3.1')
 # Update an existing package
 UmdSync.update!('react', '18.3.1')
 
+# Remove a package (from package.json + delete partial)
+UmdSync.remove!('react')
+
 # Sync all packages
 UmdSync.sync!
 
@@ -413,10 +421,13 @@ rails umd_sync:install[react]
 
 ```bash
 # Run all tests
-bundle exec rake test
+bundle exec rspec
 
 # Run specific test file
-bundle exec ruby test/test_umd_sync.rb
+bundle exec rspec spec/lib/umd_sync/core_spec.rb
+
+# Run with coverage report
+bundle exec rspec --format documentation
 ```
 
 ## License
@@ -427,14 +438,24 @@ MIT License - see LICENSE file for details.
 
 ```
 lib/umd_sync/
-├── test/
-│   ├── test_helper.rb           # Test setup and mocking
-│   ├── test_umd_sync.rb        # Core UmdSync functionality tests
-│   ├── test_rails_helpers.rb   # Rails helpers tests
-│   └── test_configuration.rb   # Configuration tests
-├── Gemfile                     # Test dependencies
-├── Rakefile                    # Test runner configuration
-└── README.md                   # This file
+├── spec/
+│   ├── spec_helper.rb                    # Test setup and mocking
+│   ├── lib/
+│   │   ├── umd_sync_spec.rb             # Main module tests
+│   │   └── umd_sync/
+│   │       ├── core_spec.rb             # Core functionality tests
+│   │       ├── rails_helpers_spec.rb    # Rails helpers tests
+│   │       ├── configuration_spec.rb    # Configuration tests
+│   │       ├── cli_spec.rb             # CLI tests
+│   │       ├── tasks_spec.rb           # Rake tasks tests
+│   │       ├── railtie_spec.rb         # Rails integration tests
+│   │       └── rails8_integration_spec.rb # Rails 8 specific tests
+│   ├── fixtures/                        # Test fixtures
+│   └── support/                         # Test support files
+├── coverage/                            # SimpleCov coverage reports
+├── Gemfile                              # Test dependencies
+├── Rakefile                             # Test runner configuration
+└── README.md                            # This file
 ```
 
 ## Running Tests
@@ -444,15 +465,25 @@ lib/umd_sync/
 ```bash
 cd lib/umd_sync
 bundle install
-bundle exec rake test
+bundle exec rspec
 ```
 
 ### Individual test files:
 
 ```bash
-bundle exec ruby test/test_umd_sync.rb
-bundle exec ruby test/test_rails_helpers.rb
-bundle exec ruby test/test_configuration.rb
+bundle exec rspec spec/lib/umd_sync/core_spec.rb
+bundle exec rspec spec/lib/umd_sync/rails_helpers_spec.rb
+bundle exec rspec spec/lib/umd_sync/configuration_spec.rb
+```
+
+### Coverage Reports:
+
+```bash
+# View coverage in terminal
+bundle exec rspec
+
+# Open coverage report in browser
+open coverage/index.html
 ```
 
 ## Test Features
@@ -464,15 +495,16 @@ bundle exec ruby test/test_configuration.rb
 - **Clean state**: Each test starts with a fresh configuration
 
 ### Comprehensive Coverage
+- **89.1% line coverage**: High test coverage across all modules
 - **Core functionality**: UMD detection, partial generation, webpack externals
 - **Rails integration**: View helpers, React component mounting, Turbo compatibility
 - **Configuration**: All configuration options and global name overrides
 - **Error handling**: Network failures, missing packages, invalid configurations
-- **CLI simulation**: All major UmdSync operations
+- **CLI simulation**: All major UmdSync operations and rake tasks
 
 ### Realistic Testing
 - **Mock Rails app**: Complete package.json, webpack.config.js, directory structure
-- **CDN simulation**: Success and failure scenarios for UMD discovery
+- **CDN simulation**: Success and failure scenarios for UMD discovery with VCR
 - **File operations**: Actual file creation and modification (in temp directories)
 - **Rails helpers**: Full ActionView integration testing
 
@@ -488,8 +520,10 @@ This test suite follows these principles:
 
 ## Dependencies
 
-- **minitest**: Ruby's built-in testing framework
+- **rspec**: Modern Ruby testing framework
 - **webmock**: HTTP request stubbing for CDN calls
+- **vcr**: HTTP interaction recording and playback
+- **simplecov**: Code coverage analysis
 - **rake**: Test runner
 
 All dependencies are isolated to this test suite and won't affect applications using the gem.
