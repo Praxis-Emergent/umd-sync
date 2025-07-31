@@ -46,8 +46,8 @@ RSpec.describe UmdSync::Railtie do
   end
 
   describe 'initializers' do
-    it 'has two initializers defined' do
-      expect(UmdSync::Railtie.initializers.count).to eq(3)
+    it 'has initializers defined' do
+      expect(UmdSync::Railtie.initializers.count).to eq(4)
     end
 
     it 'defines helpers initializer' do
