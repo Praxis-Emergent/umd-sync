@@ -107,7 +107,7 @@ function DashboardApp({ userId }) {
   return <div>Welcome user {userId}!</div>;
 }
 
-window.umd_sync_react = { DashboardApp };
+window.umd_sync = { DashboardApp };
 ```
 
 ## CLI Commands

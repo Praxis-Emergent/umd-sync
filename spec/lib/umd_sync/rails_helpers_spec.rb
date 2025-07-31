@@ -240,7 +240,7 @@ RSpec.describe UmdSync::RailsHelpers do
       expect(result).to include('id="react-my-component"')
       expect(result).to include('data-user-id="123"')
       expect(result).to include('data-theme="dark"')
-      expect(result).to include('window.umd_sync_react.MyComponent')
+      expect(result).to include('window.umd_sync.MyComponent')
       expect(result).to include('function mountMyComponent()')
       expect(result).to include('function cleanupMyComponent()')
     end

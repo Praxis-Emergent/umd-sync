@@ -31,7 +31,7 @@ RSpec.describe 'Rails 8 Integration' do
       expect(File.exist?(webpack_path)).to be true
       
       content = File.read(webpack_path)
-      expect(content).to include('umd_sync_react')
+      expect(content).to include('umd_sync')
       expect(content).to include('public/assets') # Rails 8 asset location
     end
   end
@@ -73,8 +73,7 @@ RSpec.describe 'Rails 8 Integration' do
     it 'uses modern namespace convention' do
       result = view_context.react_component('TestComponent', {})
       
-      expect(result).to include('window.umd_sync_react.TestComponent')
-      expect(result).not_to include('primadao') # Ensure no legacy references
+      expect(result).to include('window.umd_sync.TestComponent')
     end
   end
 

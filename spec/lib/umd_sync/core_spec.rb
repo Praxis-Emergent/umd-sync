@@ -178,11 +178,20 @@ RSpec.describe UmdSync::Core do
       webpack_path = File.join(temp_dir, 'webpack.config.js')
       File.delete(webpack_path) if File.exist?(webpack_path)
       
+      # Mock the additional methods that init! now calls
+      allow(core).to receive(:check_node_tools!)
+      allow(core).to receive(:ensure_package_json!)
+      allow(core).to receive(:install_essential_dependencies!)
+      allow(core).to receive(:create_scaffolded_structure!)
+      allow(core).to receive(:inject_umd_partials_into_layout!)
+      allow(core).to receive(:ensure_node_modules_gitignored!)
+      
       expect { core.init! }.to output(/Generated webpack.config.js/).to_stdout
       
       expect(File.exist?(webpack_path)).to be true
       content = File.read(webpack_path)
-      expect(content).to include('umd_sync_react')
+      expect(content).to include('umd_sync')
+      expect(content).to include('./app/javascript/umd_sync/index.js')
     end
   end
 

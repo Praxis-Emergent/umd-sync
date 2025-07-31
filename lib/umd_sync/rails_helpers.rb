@@ -1,5 +1,14 @@
 module UmdSync
   module RailsHelpers
+    # Single helper that renders both UMD partials and bundle script
+    # Usage: <%= umd_sync %>
+    def umd_sync
+      output = []
+      output << umd_partials
+      output << umd_bundle_script
+      output.join("\n").html_safe
+    end
+
     # Render all UMD partials for installed packages
     # Usage: <%= umd_partials %>
     def umd_partials
@@ -56,7 +65,7 @@ module UmdSync
     # Usage: <%= react_component('DashboardApp', { userId: current_user.id }, container_id: 'dashboard-app') %>
     def react_component(component_name, props = {}, options = {})
       container_id = options[:container_id] || "react-#{component_name.underscore.dasherize}"
-      namespace = options[:namespace] || 'window.umd_sync_react'
+      namespace = options[:namespace] || 'window.umd_sync'
       
       # Convert props to data attributes (camelCase -> kebab-case)
       data_attrs = props.map do |key, value|

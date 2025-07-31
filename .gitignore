@@ -22,3 +22,5 @@ spec/fixtures/vcr_cassettes/
 
 # RSpec
 .rspec_status 
+# UmdSync: Node.js dependencies
+/node_modules
