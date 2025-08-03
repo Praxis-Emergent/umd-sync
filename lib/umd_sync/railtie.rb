@@ -6,6 +6,11 @@ module UmdSync
 
     rake_tasks do
       load 'umd_sync/tasks.rb'
+      
+      # Hook into assets:precompile for production deploys
+      if Rake::Task.task_defined?('assets:precompile')
+        Rake::Task['assets:precompile'].enhance(['umd_sync:build'])
+      end
     end
 
     # Auto-include helpers in Rails

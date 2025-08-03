@@ -546,4 +546,619 @@ RSpec.describe UmdSync::Core do
       expect(core.version_for('range-version')).to match(/\d+\.\d+\.\d+/)
     end
   end
+
+  describe '#install!' do
+    it 'calls underlying install methods' do
+      allow(core).to receive(:package_installed?).and_return(false)
+      allow(core).to receive(:add_package_via_yarn)
+      allow(core).to receive(:install_package!)
+      allow(core).to receive(:react_ecosystem_complete?).and_return(false)
+      
+      expect { core.install!('react', '18.3.1') }.to output(/Installing UMD package/).to_stdout
+      
+      expect(core).to have_received(:add_package_via_yarn).with('react', '18.3.1')
+      expect(core).to have_received(:install_package!).with('react', '18.3.1')
+    end
+
+    it 'activates React scaffolding when ecosystem becomes complete' do
+      # Setup: react is not installed, react-dom is
+      create_temp_package_json(temp_dir, { 'react-dom' => '^18.3.1' })
+      
+      allow(core).to receive(:add_package_via_yarn)
+      allow(core).to receive(:install_package!)
+      allow(core).to receive(:activate_react_scaffolding!)
+      
+      # First call: ecosystem incomplete
+      allow(core).to receive(:react_ecosystem_complete?).and_return(false, true)
+      
+      core.install!('react', '18.3.1')
+      
+      expect(core).to have_received(:activate_react_scaffolding!)
+    end
+  end
+
+  describe '#update!' do
+    it 'calls yarn update and reinstalls package' do
+      allow(core).to receive(:yarn_update!)
+      allow(core).to receive(:install_package!)
+      
+      expect { core.update!('react', '18.3.1') }.to output(/Updating UMD package/).to_stdout
+      
+      expect(core).to have_received(:yarn_update!).with('react', '18.3.1')
+      expect(core).to have_received(:install_package!).with('react')
+    end
+
+    it 'raises error if package not installed' do
+      create_temp_package_json(temp_dir, {})
+      
+      expect { core.update!('missing-package') }.to raise_error(UmdSync::PackageNotFoundError)
+    end
+  end
+
+  describe 'React ecosystem activation' do
+    describe '#react_ecosystem_complete?' do
+      it 'returns true when both react and react-dom are installed' do
+        create_temp_package_json(temp_dir, { 'react' => '^18.3.1', 'react-dom' => '^18.3.1' })
+        
+        expect(core.send(:react_ecosystem_complete?)).to be true
+      end
+
+      it 'returns false when only react is installed' do
+        create_temp_package_json(temp_dir, { 'react' => '^18.3.1' })
+        
+        expect(core.send(:react_ecosystem_complete?)).to be false
+      end
+
+      it 'returns false when only react-dom is installed' do
+        create_temp_package_json(temp_dir, { 'react-dom' => '^18.3.1' })
+        
+        expect(core.send(:react_ecosystem_complete?)).to be false
+      end
+
+      it 'returns false when neither is installed' do
+        create_temp_package_json(temp_dir, {})
+        
+        expect(core.send(:react_ecosystem_complete?)).to be false
+      end
+    end
+
+    describe '#activate_react_scaffolding!' do
+      before do
+        allow(STDIN).to receive(:gets).and_return("n\n")
+      end
+
+      it 'calls all React activation methods' do
+        allow(core).to receive(:uncomment_react_imports!)
+        allow(core).to receive(:create_hello_world_component!)
+        allow(core).to receive(:build_bundle!)
+        allow(core).to receive(:offer_demo_route!)
+        
+        expect { core.send(:activate_react_scaffolding!) }.to output(/React ecosystem is now complete/).to_stdout
+        
+        expect(core).to have_received(:uncomment_react_imports!)
+        expect(core).to have_received(:create_hello_world_component!)
+        expect(core).to have_received(:build_bundle!)
+        expect(core).to have_received(:offer_demo_route!)
+      end
+    end
+
+    describe '#uncomment_react_imports!' do
+      let(:index_js_path) { File.join(temp_dir, 'app', 'javascript', 'umd_sync', 'index.js') }
+      
+      before do
+        FileUtils.mkdir_p(File.dirname(index_js_path))
+      end
+
+      it 'uncomments React imports in template file' do
+        # Create the exact template format expected by the method
+        File.write(index_js_path, <<~JS)
+          // UmdSync Entry Point
+          // Import your JavaScript modules here
+          // import HelloWorld from './components/HelloWorld';
+
+          export default {
+           // HelloWorld
+          };
+        JS
+        
+        expect { core.send(:uncomment_react_imports!) }.to output(/Activated React imports/).to_stdout
+        
+        content = File.read(index_js_path)
+        expect(content).to include('import HelloWorld from')
+        expect(content).not_to include('// import HelloWorld from')
+        expect(content).to include('HelloWorld')
+        expect(content).not_to include('// HelloWorld')
+      end
+
+      it 'warns when file has been modified' do
+        File.write(index_js_path, "custom content")
+        
+        expect { core.send(:uncomment_react_imports!) }.to output(/has been modified/).to_stdout
+      end
+
+      it 'handles missing index.js file' do
+        expect { core.send(:uncomment_react_imports!) }.not_to raise_error
+      end
+    end
+
+    describe '#create_hello_world_component!' do
+      let(:components_dir) { File.join(temp_dir, 'app', 'javascript', 'umd_sync', 'components') }
+      let(:hello_world_path) { File.join(components_dir, 'HelloWorld.jsx') }
+      
+      before do
+        FileUtils.mkdir_p(components_dir)
+      end
+
+      it 'creates HelloWorld component' do
+        # Ensure directory exists
+        FileUtils.mkdir_p(components_dir)
+        
+        expect { core.send(:create_hello_world_component!) }.to output(/Created HelloWorld.jsx/).to_stdout
+        
+        expect(File.exist?(hello_world_path)).to be true
+        content = File.read(hello_world_path)
+        expect(content).to include('React')
+        expect(content).to include('useState')
+        expect(content).to include('UmdSync')
+      end
+
+      it 'skips if component already exists' do
+        File.write(hello_world_path, 'existing content')
+        
+        expect { core.send(:create_hello_world_component!) }.to output(/already exists/).to_stdout
+        
+        content = File.read(hello_world_path)
+        expect(content).to eq('existing content')
+      end
+    end
+
+    describe '#build_bundle!' do
+      it 'runs yarn build when yarn is available' do
+        allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
+        allow(core).to receive(:system).with('yarn build > /dev/null 2>&1').and_return(true)
+        
+        expect { core.send(:build_bundle!) }.to output(/Bundle built successfully/).to_stdout
+      end
+
+      it 'warns when yarn is not available' do
+        allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(false)
+        
+        expect { core.send(:build_bundle!) }.to output(/yarn not found/).to_stdout
+      end
+
+      it 'warns when build fails' do
+        allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
+        allow(core).to receive(:system).with('yarn build > /dev/null 2>&1').and_return(false)
+        
+        expect { core.send(:build_bundle!) }.to output(/Build failed/).to_stdout
+      end
+    end
+
+    describe '#offer_demo_route!' do
+      before do
+        allow(core).to receive(:demo_route_exists?).and_return(false)
+      end
+
+      it 'creates demo route when user agrees' do
+        allow(STDIN).to receive(:gets).and_return("y\n")
+        allow(core).to receive(:create_demo_route!)
+        
+        expect { core.send(:offer_demo_route!) }.to output(/Would you like to create a demo route/).to_stdout
+        
+        expect(core).to have_received(:create_demo_route!)
+      end
+
+      it 'skips demo route when user declines' do
+        allow(STDIN).to receive(:gets).and_return("n\n")
+        
+        expect { core.send(:offer_demo_route!) }.to output(/No problem!/).to_stdout
+      end
+
+      it 'skips if demo route already exists' do
+        allow(core).to receive(:demo_route_exists?).and_return(true)
+        
+        expect { core.send(:offer_demo_route!) }.to output(/Demo route already exists/).to_stdout
+      end
+    end
+  end
+
+  describe 'initialization helpers' do
+    describe '#check_node_tools!' do
+      it 'succeeds when npm and yarn are available' do
+        allow(core).to receive(:system).with('which npm > /dev/null 2>&1').and_return(true)
+        allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
+        
+        expect { core.send(:check_node_tools!) }.to output(/npm and yarn are available/).to_stdout
+      end
+
+      it 'exits when npm is missing' do
+        allow(core).to receive(:system).with('which npm > /dev/null 2>&1').and_return(false)
+        allow(core).to receive(:exit).with(1)
+        
+        expect { core.send(:check_node_tools!) }.to output(/npm not found/).to_stdout
+        expect(core).to have_received(:exit).with(1)
+      end
+
+      it 'exits when yarn is missing' do
+        allow(core).to receive(:system).with('which npm > /dev/null 2>&1').and_return(true)
+        allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(false)
+        allow(core).to receive(:exit)
+        
+        expect { core.send(:check_node_tools!) }.to output(/yarn not found/).to_stdout
+        expect(core).to have_received(:exit).with(1)
+      end
+    end
+
+    describe '#ensure_package_json!' do
+      let(:package_json_path) { File.join(temp_dir, 'package.json') }
+      
+      it 'creates package.json when missing' do
+        File.delete(package_json_path) if File.exist?(package_json_path)
+        
+        expect { core.send(:ensure_package_json!) }.to output(/Creating package.json/).to_stdout
+        
+        expect(File.exist?(package_json_path)).to be true
+        content = JSON.parse(File.read(package_json_path))
+        expect(content['scripts']).to include('build', 'watch')
+        expect(content['name']).to eq(File.basename(temp_dir))
+      end
+
+      it 'skips when package.json exists' do
+        expect { core.send(:ensure_package_json!) }.to output(/package.json already exists/).to_stdout
+      end
+    end
+
+    describe '#install_essential_dependencies!' do
+      it 'installs missing dependencies' do
+        create_temp_package_json(temp_dir, {})
+        allow(core).to receive(:system).and_return(true)
+        
+        expect { core.send(:install_essential_dependencies!) }.to output(/Installing essential webpack dependencies/).to_stdout
+      end
+
+      it 'skips when all dependencies are installed' do
+        # Create package.json with all essential deps
+        dev_deps = {}
+        UmdSync::Core::ESSENTIAL_DEPENDENCIES.each do |dep|
+          package_name = dep.split('@').first
+          dev_deps[package_name] = '1.0.0'
+        end
+        # Manually create package.json with devDependencies
+        package_json = {
+          'name' => 'test-app',
+          'version' => '1.0.0',
+          'dependencies' => {},
+          'devDependencies' => dev_deps
+        }
+        File.write(File.join(temp_dir, 'package.json'), JSON.pretty_generate(package_json))
+        
+        expect { core.send(:install_essential_dependencies!) }.to output(/All essential dependencies already installed/).to_stdout
+      end
+
+      it 'exits on installation failure' do
+        create_temp_package_json(temp_dir, {})
+        allow(core).to receive(:system).and_return(false)
+        allow(core).to receive(:exit)
+        
+        expect { core.send(:install_essential_dependencies!) }.to output(/Failed to install dependencies/).to_stdout
+        expect(core).to have_received(:exit).with(1)
+      end
+    end
+
+    describe '#create_scaffolded_structure!' do
+      let(:umd_sync_dir) { File.join(temp_dir, 'app', 'javascript', 'umd_sync') }
+      let(:components_dir) { File.join(umd_sync_dir, 'components') }
+      
+      it 'creates directory structure and files' do
+        # Ensure the directory doesn't exist first
+        FileUtils.rm_rf(umd_sync_dir) if Dir.exist?(umd_sync_dir)
+        
+        expect { core.send(:create_scaffolded_structure!) }.to output(/Creating scaffolded structure/).to_stdout
+        
+        expect(Dir.exist?(components_dir)).to be true
+        expect(File.exist?(File.join(umd_sync_dir, 'index.js'))).to be true
+        expect(File.exist?(File.join(components_dir, '.gitkeep'))).to be true
+      end
+
+      it 'skips existing files' do
+        FileUtils.mkdir_p(umd_sync_dir)
+        File.write(File.join(umd_sync_dir, 'index.js'), 'existing')
+        
+        expect { core.send(:create_scaffolded_structure!) }.to output(/already exists/).to_stdout
+        
+        content = File.read(File.join(umd_sync_dir, 'index.js'))
+        expect(content).to eq('existing')
+      end
+    end
+
+    describe '#inject_umd_partials_into_layout!' do
+      let(:layout_path) { File.join(temp_dir, 'app', 'views', 'layouts', 'application.html.erb') }
+      
+      before do
+        FileUtils.mkdir_p(File.dirname(layout_path))
+      end
+
+      it 'injects UMD helper into layout' do
+        File.write(layout_path, <<~ERB)
+          <html>
+            <head>
+              <title>App</title>
+            </head>
+            <body>
+            </body>
+          </html>
+        ERB
+        
+        # Mock Dir.pwd to return temp_dir
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect { core.send(:inject_umd_partials_into_layout!) }.to output(/Auto-injected UMD helper/).to_stdout
+        
+        content = File.read(layout_path)
+        expect(content).to include('<%= umd_sync %>')
+        expect(content).to include('UmdSync: Auto-injected')
+      end
+
+      it 'skips if already injected' do
+        File.write(layout_path, '<%= umd_sync %>')
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect { core.send(:inject_umd_partials_into_layout!) }.to output(/already present/).to_stdout
+      end
+
+      it 'warns when layout file missing' do
+        expect { core.send(:inject_umd_partials_into_layout!) }.to output(/Layout file not found/).to_stdout
+      end
+
+      it 'warns when no head tag found' do
+        File.write(layout_path, '<html><body></body></html>')
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect { core.send(:inject_umd_partials_into_layout!) }.to output(/Could not find <\/head> tag/).to_stdout
+      end
+    end
+
+    describe '#ensure_node_modules_gitignored!' do
+      let(:gitignore_path) { File.join(temp_dir, '.gitignore') }
+      
+      it 'creates .gitignore when missing' do
+        # Ensure .gitignore doesn't exist
+        File.delete(gitignore_path) if File.exist?(gitignore_path)
+        
+        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/Created .gitignore/).to_stdout
+        
+        expect(File.exist?(gitignore_path)).to be true
+        expect(File.read(gitignore_path)).to include('/node_modules')
+      end
+
+      it 'adds node_modules when missing from .gitignore' do
+        # Create .gitignore without node_modules
+        File.write(gitignore_path, "*.log\n")
+        
+        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/Added \/node_modules/).to_stdout
+        
+        content = File.read(gitignore_path)
+        expect(content).to include('*.log')
+        expect(content).to include('/node_modules')
+      end
+
+      it 'skips when node_modules already ignored' do
+        File.write(gitignore_path, "/node_modules\n")
+        
+        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/already in .gitignore/).to_stdout
+      end
+
+      it 'recognizes various node_modules patterns' do
+        patterns = ['/node_modules', 'node_modules/', '**/node_modules/']
+        
+        patterns.each do |pattern|
+          File.write(gitignore_path, pattern)
+          expect { core.send(:ensure_node_modules_gitignored!) }.to output(/already in .gitignore/).to_stdout
+        end
+      end
+    end
+  end
+
+  describe 'demo route methods' do
+    describe '#demo_route_exists?' do
+      let(:routes_file) { File.join(temp_dir, 'config', 'routes.rb') }
+      
+      it 'returns true when route exists' do
+        FileUtils.mkdir_p(File.dirname(routes_file))
+        File.write(routes_file, "get 'umd-sync/react'")
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect(core.send(:demo_route_exists?)).to be true
+      end
+
+      it 'returns false when route missing' do
+        FileUtils.mkdir_p(File.dirname(routes_file))
+        File.write(routes_file, "Rails.application.routes.draw do\nend")
+        
+        expect(core.send(:demo_route_exists?)).to be false
+      end
+
+      it 'returns false when routes file missing' do
+        expect(core.send(:demo_route_exists?)).to be false
+      end
+    end
+
+    describe '#create_demo_route!' do
+      it 'calls all demo creation methods' do
+        allow(core).to receive(:create_demo_controller!)
+        allow(core).to receive(:create_demo_view!)
+        allow(core).to receive(:add_demo_route!)
+        
+        core.send(:create_demo_route!)
+        
+        expect(core).to have_received(:create_demo_controller!)
+        expect(core).to have_received(:create_demo_view!)
+        expect(core).to have_received(:add_demo_route!)
+      end
+    end
+
+    describe '#create_demo_controller!' do
+      let(:controller_path) { File.join(temp_dir, 'app', 'controllers', 'umd_sync_demo_controller.rb') }
+      
+      it 'creates demo controller' do
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect { core.send(:create_demo_controller!) }.to output(/Created.*umd_sync_demo_controller/).to_stdout
+        
+        expect(File.exist?(controller_path)).to be true
+        content = File.read(controller_path)
+        expect(content).to include('UmdSyncDemoController')
+        expect(content).to include('def react')
+      end
+    end
+
+    describe '#create_demo_view!' do
+      let(:view_path) { File.join(temp_dir, 'app', 'views', 'umd_sync_demo', 'react.html.erb') }
+      
+      it 'creates demo view' do
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect { core.send(:create_demo_view!) }.to output(/Created.*react.html.erb/).to_stdout
+        
+        expect(File.exist?(view_path)).to be true
+        content = File.read(view_path)
+        expect(content).to include('react_component')
+        expect(content).to include('HelloWorld')
+      end
+    end
+
+    describe '#add_demo_route!' do
+      let(:routes_file) { File.join(temp_dir, 'config', 'routes.rb') }
+      
+      before do
+        FileUtils.mkdir_p(File.dirname(routes_file))
+      end
+
+      it 'adds route to routes.rb' do
+        File.write(routes_file, "Rails.application.routes.draw do\n  # existing routes\nend")
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect { core.send(:add_demo_route!) }.to output(/Added route/).to_stdout
+        
+        content = File.read(routes_file)
+        expect(content).to include("get 'umd-sync/react'")
+        expect(content).to include('umd_sync_demo#react')
+      end
+
+      it 'warns when routes file missing' do
+        expect { core.send(:add_demo_route!) }.to output(/Routes file not found/).to_stdout
+      end
+
+      it 'warns when cannot find insertion point' do
+        File.write(routes_file, "invalid content")
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect { core.send(:add_demo_route!) }.to output(/Could not automatically add route/).to_stdout
+      end
+    end
+  end
+
+  describe 'package management edge cases' do
+    describe '#download_and_create_partial!' do
+      it 'skips packages without UMD builds' do
+        allow(core).to receive(:find_working_umd_url).and_return([nil, nil])
+        
+        expect { core.send(:download_and_create_partial!, 'no-umd-package') }.to output(/No UMD build found/).to_stdout
+      end
+
+      it 'creates partial for packages with UMD' do
+        allow(core).to receive(:find_working_umd_url).and_return(['http://example.com/umd.js', 'GlobalName'])
+        allow(core).to receive(:download_umd_content).and_return('// UMD content')
+        
+        expect { core.send(:download_and_create_partial!, 'test-package') }.to output(/Created partial/).to_stdout
+      end
+    end
+
+    describe '#partial_path_for' do
+      it 'handles various package name formats' do
+        partials_dir = core.configuration.partials_dir
+        expect(core.send(:partial_path_for, 'simple')).to eq(partials_dir.join('_simple.html.erb'))
+        expect(core.send(:partial_path_for, 'kebab-case')).to eq(partials_dir.join('_kebab_case.html.erb'))
+        expect(core.send(:partial_path_for, '@scope/package')).to eq(partials_dir.join('__scope_package.html.erb'))
+      end
+    end
+
+    describe '#installed_packages' do
+      it 'combines dependencies and devDependencies' do
+        # Manually create package.json with both dependencies and devDependencies
+        package_json = {
+          'name' => 'test-app',
+          'version' => '1.0.0',
+          'dependencies' => { 'prod-dep' => '1.0.0' },
+          'devDependencies' => { 'dev-dep' => '2.0.0' }
+        }
+        File.write(File.join(temp_dir, 'package.json'), JSON.pretty_generate(package_json))
+        
+        packages = core.send(:installed_packages)
+        expect(packages).to include('prod-dep', 'dev-dep')
+      end
+
+      it 'handles missing dependencies sections' do
+        File.write(File.join(temp_dir, 'package.json'), '{"name": "test"}')
+        
+        expect(core.send(:installed_packages)).to eq([])
+      end
+    end
+
+    describe '#supported_package?' do
+      it 'currently returns true for all packages' do
+        expect(core.send(:supported_package?, 'any-package')).to be true
+      end
+    end
+  end
+
+  describe 'edge cases and error scenarios' do
+    describe '#install!' do
+      it 'skips yarn add when package already installed' do
+        allow(core).to receive(:add_package_via_yarn)
+        allow(core).to receive(:install_package!)
+        allow(core).to receive(:react_ecosystem_complete?).and_return(false)
+        
+        # Package already installed
+        create_temp_package_json(temp_dir, { 'existing-package' => '1.0.0' })
+        
+        core.install!('existing-package')
+        
+        expect(core).not_to have_received(:add_package_via_yarn)
+      end
+    end
+
+    describe '#clean!' do
+      it 'handles empty partials directory' do
+        partials_dir = core.configuration.partials_dir
+        FileUtils.mkdir_p(partials_dir)
+        
+        expect { core.clean! }.to output(/Cleaning UMD partials/).to_stdout
+        
+        # Directory should be removed if empty
+        expect(Dir.exist?(partials_dir)).to be false
+      end
+
+      it 'handles non-existent partials directory' do
+        expect { core.clean! }.to output(/Cleaning UMD partials/).to_stdout
+      end
+    end
+
+    describe 'Base64 encoding in partials' do
+      it 'properly encodes UMD content' do
+        require 'base64'
+        test_content = "alert('test'); // Special chars: < > & \" '"
+        
+        partial_content = core.send(:generate_partial_content, 'test', test_content, 'Test')
+        
+        # Extract the base64 content from the partial
+        match = partial_content.match(/atob\('<%= "(.+)" %>'\)/)
+        expect(match).not_to be_nil
+        
+        encoded = match[1]
+        decoded = Base64.strict_decode64(encoded)
+        expect(decoded).to eq(test_content)
+      end
+    end
+  end
 end 

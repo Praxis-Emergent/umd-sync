@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(bundle exec rspec:*)",
+      "Bash(/dev/null)",
+      "Bash(open:*)"
+    ],
+    "deny": []
+  }
+}

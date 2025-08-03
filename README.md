@@ -133,6 +133,156 @@ rails umd_sync:clean
 rails umd_sync:config
 ```
 
+## 📦 Working with Scoped Packages
+
+### What are Scoped Packages?
+
+Scoped packages are npm packages that belong to a namespace, prefixed with `@`. Examples include:
+- `@solana/web3.js`
+- `@mui/material` 
+- `@tanstack/react-query`
+- `@emotion/react`
+
+### Installation Syntax
+
+When installing scoped packages, you **must** include the full package name with the `@` symbol:
+
+```bash
+# ✅ Correct - Full scoped package name
+rails "umd_sync:install[@solana/web3.js,1.98.2]"
+rails "umd_sync:install[@mui/material,5.14.1]"
+rails "umd_sync:install[@emotion/react,11.11.1]"
+
+# ❌ Incorrect - Missing .js suffix
+rails "umd_sync:install[@solana/web3,1.98.2]"
+
+# ❌ Incorrect - Missing scope
+rails "umd_sync:install[web3.js,1.98.2]"
+```
+
+### Shell Escaping
+
+The `@` symbol is handled automatically by Rails task syntax when using double quotes. No additional escaping is needed:
+
+```bash
+# ✅ Works perfectly
+rails "umd_sync:install[@solana/web3.js]"
+
+# ✅ Also works (with version)
+rails "umd_sync:install[@solana/web3.js,1.98.2]"
+
+# ⚠️ May not work in some shells without quotes
+rails umd_sync:install[@solana/web3.js]  # Avoid this
+```
+
+### Global Name Detection
+
+UmdSync automatically converts scoped package names to valid JavaScript global names:
+
+```ruby
+# Automatic conversions:
+'@solana/web3.js'     => 'solanaWeb3'     # Scope removed, camelCase
+'@mui/material'       => 'muiMaterial'    # Scope removed, camelCase  
+'@emotion/react'      => 'emotionReact'   # Scope removed, camelCase
+'@tanstack/query'     => 'tanstackQuery'  # Scope removed, camelCase
+```
+
+### Custom Global Names
+
+You can override the automatic global name detection for scoped packages:
+
+```ruby
+# config/initializers/umd_sync.rb
+UmdSync.configure do |config|
+  config.global_name_overrides = {
+    '@solana/web3.js' => 'solanaWeb3',      # Already built-in
+    '@mui/material' => 'MaterialUI',        # Custom override
+    '@emotion/react' => 'EmotionReact',     # Custom override
+    '@tanstack/react-query' => 'ReactQuery' # Custom override
+  }
+end
+```
+
+### Usage in Components
+
+Once installed, scoped packages work exactly like regular packages:
+
+```jsx
+// jsx/components/SolanaComponent.jsx
+import { Connection, PublicKey } from '@solana/web3.js';
+import React from 'react';
+
+function SolanaComponent() {
+  const connection = new Connection('https://api.devnet.solana.com');
+  
+  return (
+    <div>
+      <h2>Solana Integration</h2>
+      <p>Connected to: {connection.rpcEndpoint}</p>
+    </div>
+  );
+}
+
+export default SolanaComponent;
+```
+
+### Webpack Externals
+
+UmdSync automatically configures webpack externals for scoped packages:
+
+```javascript
+// webpack.config.js (auto-generated)
+module.exports = {
+  externals: {
+    // UmdSync managed externals - do not edit manually
+    "@solana/web3.js": "solanaWeb3",
+    "@mui/material": "muiMaterial",
+    "react": "React",
+    "react-dom": "ReactDOM"
+  },
+  // ... rest of config
+};
+```
+
+### Common Scoped Packages
+
+Here are popular scoped packages that work well with UmdSync:
+
+| Package | Command | Global Name | Use Case |
+|---------|---------|-------------|----------|
+| `@solana/web3.js` | `rails "umd_sync:install[@solana/web3.js]"` | `solanaWeb3` | Solana blockchain |
+| `@mui/material` | `rails "umd_sync:install[@mui/material]"` | `muiMaterial` | Material UI components |
+| `@emotion/react` | `rails "umd_sync:install[@emotion/react]"` | `emotionReact` | CSS-in-JS styling |
+
+### Troubleshooting Scoped Packages
+
+**Issue: Package not found**
+```bash
+# Check the exact package name on npm
+npm view @solana/web3.js
+
+# Ensure you're using the full name
+rails "umd_sync:install[@solana/web3.js]"  # ✅ Correct
+rails "umd_sync:install[@solana/web3]"     # ❌ Wrong
+```
+
+**Issue: Global name conflicts**
+```ruby
+# Override in configuration
+UmdSync.configure do |config|
+  config.global_name_overrides = {
+    '@conflicting/package' => 'UniqueGlobalName'
+  }
+end
+```
+
+**Issue: UMD not available**
+```bash
+# Some scoped packages don't ship UMD builds
+# Check package documentation or try alternatives
+# Future UmdSync versions will support local UMD generation
+```
+
 ### ⚡ Quick Reference
 
 | Command | What it does | Example |

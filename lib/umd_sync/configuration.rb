@@ -69,7 +69,6 @@ module UmdSync
     'date-fns' => 'dateFns',
     'vue' => 'Vue',
     'angular' => 'ng',
-    'backbone' => 'Backbone',
     
     # Scoped packages that flatten to different global names
     '@solana/web3.js' => 'solanaWeb3',

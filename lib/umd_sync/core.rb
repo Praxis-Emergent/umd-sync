@@ -60,7 +60,8 @@ module UmdSync
       puts "                       rails \"umd_sync:install[react-dom,18.3.1]\""  
       puts "2. Start dev:          yarn watch"
       puts "3. Use components:     <%= react_component('HelloWorld') %>"
-      puts "\n💡 UmdSync is framework-agnostic - use React, Vue, or any UMD library!"
+      puts "\n🚀 Rails 8 Ready: Assets output to /public/ for seamless deployment!"
+      puts "💡 UmdSync is framework-agnostic - use React, Vue, or any UMD library!"
       puts "🎉 Ready to build!"
     end
 
@@ -366,30 +367,48 @@ module UmdSync
       end
     end
 
-    # Ensure node_modules is in .gitignore
+    # Ensure node_modules is in .gitignore and UmdSync assets are tracked
     def ensure_node_modules_gitignored!
       gitignore_path = File.join(Dir.pwd, '.gitignore')
       
       unless File.exist?(gitignore_path)
         puts "⚠️  .gitignore not found, creating one..."
-        File.write(gitignore_path, "/node_modules\n")
-        puts "✓ Created .gitignore with /node_modules"
+        gitignore_content = <<~GITIGNORE
+          /node_modules
+          
+          # UmdSync: Track webpack bundles for deployment
+          !/public/umd_sync_manifest.json
+          !/public/umd_sync_bundle.js
+        GITIGNORE
+        File.write(gitignore_path, gitignore_content)
+        puts "✓ Created .gitignore with /node_modules and UmdSync asset tracking"
         return
       end
       
       content = File.read(gitignore_path)
+      updated = false
       
       # Check if node_modules is already ignored (various patterns)
-      if content.match?(/^\/node_modules\s*$/m) || 
-         content.match?(/^node_modules\/?\s*$/m) ||
-         content.match?(/^\*\*\/node_modules\/?\s*$/m)
-        puts "✓ node_modules already in .gitignore"
-        return
+      unless content.match?(/^\/node_modules\s*$/m) || 
+             content.match?(/^node_modules\/?\s*$/m) ||
+             content.match?(/^\*\*\/node_modules\/?\s*$/m)
+        content += "\n# UmdSync: Node.js dependencies\n/node_modules\n"
+        updated = true
+        puts "✓ Added /node_modules to .gitignore"
       end
       
-      # Add /node_modules to .gitignore
-      File.write(gitignore_path, content + "\n# UmdSync: Node.js dependencies\n/node_modules\n")
-      puts "✓ Added /node_modules to .gitignore"
+      # Check if UmdSync assets are already tracked
+      unless content.include?('!/public/umd_sync_manifest.json') && content.include?('!/public/umd_sync_bundle.js')
+        content += "\n# UmdSync: Track webpack bundles for deployment\n!/public/umd_sync_manifest.json\n!/public/umd_sync_bundle.js\n"
+        updated = true
+        puts "✓ Added UmdSync asset tracking to .gitignore"
+      end
+      
+      if updated
+        File.write(gitignore_path, content)
+      else
+        puts "✓ .gitignore already configured for UmdSync"
+      end
     end
 
     public
@@ -793,28 +812,28 @@ module UmdSync
         module.exports = {
           mode: isProduction ? 'production' : 'development',
           entry: {
-            bundle: ['./app/javascript/umd_sync/index.js']
+            umd_sync_bundle: ['./app/javascript/umd_sync/index.js']
           },
           externals: {
             // UmdSync managed externals - do not edit manually
             // These will be auto-updated by umd-sync
           },
           output: {
-            path: path.resolve(__dirname, 'public/assets'),
-            filename: '[name].[contenthash].js',
+            path: path.resolve(__dirname, 'public'),
+            filename: '[name].js',
             library: {
               name: 'umd_sync',
-              type: 'umd',
+              type: 'window',
               export: 'default'
             },
             globalObject: 'window',
-            clean: true,
-            publicPath: '/assets/'
+            clean: false,
+            publicPath: '/'
           },
           plugins: [
             new WebpackManifestPlugin({
-              fileName: 'manifest.json',
-              publicPath: '/assets/',
+              fileName: 'umd_sync_manifest.json',
+              publicPath: '/',
               writeToFileEmit: true
             })
           ],

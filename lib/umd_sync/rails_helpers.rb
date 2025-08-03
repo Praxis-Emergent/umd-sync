@@ -94,7 +94,7 @@ module UmdSync
 
             function mount#{component_name}() {
               const container = document.getElementById('#{container_id}');
-              if (!container || !window.React || !window.ReactDOM || !#{namespace}?.#{component_name} || container.dataset.mounted) {
+              if (!container || !window.React || !window.ReactDOM || !#{namespace}?.default?.#{component_name} || container.dataset.mounted) {
                 return;
               }
 
@@ -105,11 +105,11 @@ module UmdSync
               // Render component
               if (window.ReactDOM.createRoot) {
                 const root = window.ReactDOM.createRoot(container);
-                root.render(window.React.createElement(#{namespace}.#{component_name}, props));
+                root.render(window.React.createElement(#{namespace}.default.#{component_name}, props));
                 container._reactRoot = root;
               } else {
                 window.ReactDOM.render(
-                  window.React.createElement(#{namespace}.#{component_name}, props),
+                  window.React.createElement(#{namespace}.default.#{component_name}, props),
                   container
                 );
               }
@@ -162,25 +162,28 @@ module UmdSync
     # Render the webpack bundle script tag
     # Usage: <%= umd_bundle_script %>
     def umd_bundle_script
-      manifest_path = Rails.root.join('public/assets/manifest.json')
+      manifest_path = Rails.root.join('public/umd_sync_manifest.json')
+      bundle_path = '/umd_sync_bundle.js'
       
       unless File.exist?(manifest_path)
-        # Fallback to standard application.js when no manifest
-        return %(<script src="#{asset_path('application.js')}"></script>).html_safe
+        # Fallback to direct bundle path when no manifest
+        return %(<script src="#{bundle_path}"></script>).html_safe
       end
       
       begin
         manifest = JSON.parse(File.read(manifest_path))
-        # Look for application.js first, then bundle.js as fallback
-        bundle_path = manifest['application.js'] || manifest['bundle.js']
+        # Look for umd_sync_bundle.js in manifest
+        bundle_file = manifest['umd_sync_bundle.js']
         
-        if bundle_path
-          %(<script src="#{asset_path(bundle_path)}"></script>).html_safe
+        if bundle_file
+          %(<script src="#{bundle_file}"></script>).html_safe
         else
-          "<!-- UmdSync: No bundle.js in manifest -->".html_safe
+          # Fallback to direct bundle path
+          %(<script src="#{bundle_path}"></script>).html_safe
         end
       rescue JSON::ParserError
-        "<!-- UmdSync: Invalid webpack manifest -->".html_safe
+        # Fallback to direct bundle path on manifest parse error
+        %(<script src="#{bundle_path}"></script>).html_safe
       end
     end
 

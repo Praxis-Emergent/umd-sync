@@ -73,4 +73,37 @@ namespace :umd_sync do
     puts "Supported CDNs: #{config.supported_cdns.join(', ')}"
     puts "Global name overrides: #{config.global_name_overrides.size} configured"
   end
+
+  desc 'Build UmdSync webpack bundle for production'
+  task :build do
+    puts "🔨 Building UmdSync webpack bundle..."
+    
+    unless File.exist?('package.json')
+      puts "❌ No package.json found. Run: rails umd_sync:init"
+      exit 1
+    end
+    
+    unless File.exist?('webpack.config.js')
+      puts "❌ No webpack.config.js found. Run: rails umd_sync:init"
+      exit 1
+    end
+    
+    # Check for yarn or npm
+    if system('which yarn > /dev/null 2>&1')
+      success = system('NODE_ENV=production yarn build')
+    elsif system('which npm > /dev/null 2>&1')
+      success = system('NODE_ENV=production npm run build')
+    else
+      puts "❌ Neither yarn nor npm found. Please install Node.js and yarn/npm."
+      exit 1
+    end
+    
+    if success
+      puts "✅ UmdSync bundle built successfully!"
+      puts "📦 Assets ready for deployment in /public/"
+    else
+      puts "❌ Build failed. Check your webpack configuration."
+      exit 1
+    end
+  end
 end 
