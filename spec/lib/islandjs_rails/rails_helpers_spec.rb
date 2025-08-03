@@ -5,7 +5,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
   let(:temp_dir) { create_temp_dir }
   let(:view_context) { 
     Class.new do
-      include UmdSync::RailsHelpers
+      include IslandjsRails::RailsHelpers
       include ActionView::Helpers::TagHelper
       include ActionView::Helpers::AssetTagHelper
       

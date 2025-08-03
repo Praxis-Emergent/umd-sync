@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe UmdSync::CLI do
+RSpec.describe IslandjsRails::CLI do
   let(:temp_dir) { create_temp_dir }
   let(:cli) { described_class.new }
   
@@ -13,60 +13,60 @@ RSpec.describe UmdSync::CLI do
   end
 
   describe '#init' do
-    it 'calls UmdSync.init!' do
-      expect(UmdSync).to receive(:init!)
+    it 'calls IslandjsRails.init!' do
+      expect(IslandjsRails).to receive(:init!)
       cli.init
     end
   end
 
   describe '#install' do
-    it 'calls UmdSync.install! with package name' do
-      expect(UmdSync).to receive(:install!).with('react', nil)
+    it 'calls IslandjsRails.install! with package name' do
+      expect(IslandjsRails).to receive(:install!).with('react', nil)
       cli.install('react')
     end
     
-    it 'calls UmdSync.install! with package name and version' do
-      expect(UmdSync).to receive(:install!).with('react', '18.3.1')
+    it 'calls IslandjsRails.install! with package name and version' do
+      expect(IslandjsRails).to receive(:install!).with('react', '18.3.1')
       cli.install('react', '18.3.1')
     end
   end
 
   describe '#update' do
-    it 'calls UmdSync.update! with package name' do
-      expect(UmdSync).to receive(:update!).with('react', nil)
+    it 'calls IslandjsRails.update! with package name' do
+      expect(IslandjsRails).to receive(:update!).with('react', nil)
       cli.update('react')
     end
     
-    it 'calls UmdSync.update! with package name and version' do
-      expect(UmdSync).to receive(:update!).with('react', '18.3.1')
+    it 'calls IslandjsRails.update! with package name and version' do
+      expect(IslandjsRails).to receive(:update!).with('react', '18.3.1')
       cli.update('react', '18.3.1')
     end
   end
 
   describe '#sync' do
-    it 'calls UmdSync.sync!' do
-      expect(UmdSync).to receive(:sync!)
+    it 'calls IslandjsRails.sync!' do
+      expect(IslandjsRails).to receive(:sync!)
       cli.sync
     end
   end
 
   describe '#status' do
-    it 'calls UmdSync.status!' do
-      expect(UmdSync).to receive(:status!)
+    it 'calls IslandjsRails.status!' do
+      expect(IslandjsRails).to receive(:status!)
       cli.status
     end
   end
 
   describe '#clean' do
-    it 'calls UmdSync.clean!' do
-      expect(UmdSync).to receive(:clean!)
+    it 'calls IslandjsRails.clean!' do
+      expect(IslandjsRails).to receive(:clean!)
       cli.clean
     end
   end
 
   describe '#config' do
     it 'displays configuration information' do
-      expect { cli.config }.to output(/UmdSync Configuration/).to_stdout
+      expect { cli.config }.to output(/IslandjsRails Configuration/).to_stdout
       expect { cli.config }.to output(/Package.json path/).to_stdout
       expect { cli.config }.to output(/Partials directory/).to_stdout
     end
@@ -74,13 +74,13 @@ RSpec.describe UmdSync::CLI do
 
   describe '#version' do
     it 'displays gem version' do
-      expect { cli.version }.to output(/UmdSync #{UmdSync::VERSION}/).to_stdout
+      expect { cli.version }.to output(/IslandjsRails #{IslandjsRails::VERSION}/).to_stdout
     end
   end
 
   describe '#remove' do
-    it 'calls UmdSync.remove! with package name' do
-      expect(UmdSync).to receive(:remove!).with('react')
+    it 'calls IslandjsRails.remove! with package name' do
+      expect(IslandjsRails).to receive(:remove!).with('react')
       cli.remove('react')
     end
   end

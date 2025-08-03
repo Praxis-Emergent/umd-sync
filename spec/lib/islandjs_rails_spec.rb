@@ -166,8 +166,8 @@ RSpec.describe IslandjsRails do
       
       # In this test setup, they're the same instance (singleton)
       # but this tests the configuration interface
-      expect(main_config).to be_a(UmdSync::Configuration)
-      expect(thread_config).to be_a(UmdSync::Configuration)
+      expect(main_config).to be_a(IslandjsRails::Configuration)
+      expect(thread_config).to be_a(IslandjsRails::Configuration)
     end
   end
 end 

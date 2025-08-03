@@ -917,7 +917,7 @@ RSpec.describe IslandjsRails::Core do
         
         content = File.read(layout_path)
         expect(content).to include('<%= islands %>')
-        expect(content).to include('UmdSync: Auto-injected')
+        expect(content).to include('IslandjsRails: Auto-injected')
       end
 
       it 'skips if already injected' do
@@ -970,7 +970,7 @@ RSpec.describe IslandjsRails::Core do
       it 'skips when node_modules already ignored' do
         File.write(gitignore_path, "/node_modules\n")
         
-        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/✓ .gitignore already configured for UmdSync/).to_stdout
+        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/✓ .gitignore already configured for IslandjsRails/).to_stdout
       end
 
       it 'recognizes various node_modules patterns' do
@@ -978,7 +978,7 @@ RSpec.describe IslandjsRails::Core do
         
         patterns.each do |pattern|
           File.write(gitignore_path, pattern)
-          expect { core.send(:ensure_node_modules_gitignored!) }.to output(/✓ .gitignore already configured for UmdSync/).to_stdout
+          expect { core.send(:ensure_node_modules_gitignored!) }.to output(/✓ .gitignore already configured for IslandjsRails/).to_stdout
         end
       end
     end
@@ -1032,7 +1032,7 @@ RSpec.describe IslandjsRails::Core do
         
         expect(File.exist?(controller_path)).to be true
         content = File.read(controller_path)
-        expect(content).to include('UmdSyncDemoController')
+        expect(content).to include('IslandjsRailsDemoController')
         expect(content).to include('def react')
       end
     end

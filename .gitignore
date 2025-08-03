@@ -22,10 +22,10 @@ spec/fixtures/vcr_cassettes/
 
 # RSpec
 .rspec_status 
-# UmdSync: Node.js dependencies
+# IslandJS: Node.js dependencies
 /node_modules
 yarn.lock
 
-# UmdSync: Track webpack bundles for deployment
-!/public/umd_sync_manifest.json
-!/public/umd_sync_bundle.js
+# IslandJS: Track webpack bundles for deployment
+!/public/islandjsRailsManifest.json
+!/public/islandjsRailsBundle.js

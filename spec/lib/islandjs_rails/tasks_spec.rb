@@ -58,8 +58,8 @@ RSpec.describe "Islandjs Rake Tasks" do
     end
 
     context "with package name and version" do
-      it "calls UmdSync.update! with both arguments" do
-        expect(UmdSync).to receive(:update!).with("react", "18.3.1")
+      it "calls IslandjsRails.update! with both arguments" do
+        expect(IslandjsRails).to receive(:update!).with("react", "18.3.1")
         
         Rake.application.invoke_task("islandjs:update[react,18.3.1]")
       end
@@ -78,8 +78,8 @@ RSpec.describe "Islandjs Rake Tasks" do
 
   describe "islandjs:remove" do
     context "with package name" do
-      it "calls UmdSync.remove! with package name" do
-        expect(UmdSync).to receive(:remove!).with("react")
+      it "calls IslandjsRails.remove! with package name" do
+        expect(IslandjsRails).to receive(:remove!).with("react")
         
         Rake.application.invoke_task("islandjs:remove[react]")
       end
@@ -97,24 +97,24 @@ RSpec.describe "Islandjs Rake Tasks" do
   end
 
   describe "islandjs:sync" do
-    it "calls UmdSync.sync!" do
-      expect(UmdSync).to receive(:sync!)
+    it "calls IslandjsRails.sync!" do
+      expect(IslandjsRails).to receive(:sync!)
       
       Rake.application.invoke_task("islandjs:sync")
     end
   end
 
   describe "islandjs:status" do
-    it "calls UmdSync.status!" do
-      expect(UmdSync).to receive(:status!)
+    it "calls IslandjsRails.status!" do
+      expect(IslandjsRails).to receive(:status!)
       
       Rake.application.invoke_task("islandjs:status")
     end
   end
 
   describe "islandjs:clean" do
-    it "calls UmdSync.clean!" do
-      expect(UmdSync).to receive(:clean!)
+    it "calls IslandjsRails.clean!" do
+      expect(IslandjsRails).to receive(:clean!)
       
       Rake.application.invoke_task("islandjs:clean")
     end
@@ -123,7 +123,7 @@ RSpec.describe "Islandjs Rake Tasks" do
   describe "islandjs:config" do
     it "displays configuration information" do
       config = double('configuration')
-      allow(UmdSync).to receive(:configuration).and_return(config)
+      allow(IslandjsRails).to receive(:configuration).and_return(config)
       allow(config).to receive_messages(
         package_json_path: '/path/to/package.json',
         partials_dir: '/path/to/partials',
@@ -133,7 +133,7 @@ RSpec.describe "Islandjs Rake Tasks" do
       )
 
       expect { Rake.application.invoke_task("islandjs:config") }.to output(
-        a_string_including("📊 UmdSync Configuration")
+        a_string_including("📊 IslandjsRails Configuration")
         .and(including("Package.json path: /path/to/package.json"))
         .and(including("Partials directory: /path/to/partials"))
         .and(including("Webpack config path: /path/to/webpack.config.js"))
