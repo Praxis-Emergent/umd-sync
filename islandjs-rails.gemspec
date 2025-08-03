@@ -1,20 +1,20 @@
-require_relative "lib/umd_sync/version"
+require_relative "lib/islandjs_rails/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "umd_sync"
-  spec.version       = UmdSync::VERSION
+  spec.name          = "islandjs-rails"
+  spec.version       = IslandjsRails::VERSION
   spec.authors       = ["Eric Arnold"]
   spec.email         = ["ericarnold00+praxisemergent@gmail.com"]
 
-  spec.summary       = "Simplified UMD dependency management for Rails applications"
-  spec.description   = "UmdSync automates UMD (Universal Module Definition) dependency management for Rails. Download UMD builds from CDNs, integrate them with ERB partials, and render React components with Turbo-compatible lifecycle management."
-  spec.homepage      = "https://github.com/umd-sync/umd_sync"
+  spec.summary       = "React and Vue islands for Rails applications"
+  spec.description   = "IslandJS Rails enables React, Vue, and other JavaScript islands in Rails apps with zero webpack complexity. Load UMD libraries from CDNs, integrate with ERB partials, and render components with Turbo-compatible lifecycle management."
+  spec.homepage      = "https://github.com/islandjs/islandjs-rails"
   spec.license       = "MIT"
   spec.required_ruby_version = ">= 3.0.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/umd-sync/umd_sync"
-  spec.metadata["changelog_uri"] = "https://github.com/umd-sync/umd_sync/blob/main/CHANGELOG.md"
+  spec.metadata["source_code_uri"] = "https://github.com/islandjs/islandjs-rails"
+  spec.metadata["changelog_uri"] = "https://github.com/islandjs/islandjs-rails/blob/main/CHANGELOG.md"
 
   # Specify which files should be added to the gem when it is released.
   spec.files = Dir.chdir(__dir__) do
@@ -32,11 +32,11 @@ Gem::Specification.new do |spec|
   # Post-install message
   spec.post_install_message = <<~MSG
     
-    🚀 UmdSync installed successfully!
+    🏝️ IslandJS Rails installed successfully!
     
-    📋 Next step: Initialize UmdSync in your Rails app
-    
-        bundle exec rails umd_sync:init
+    📋 Next step: Initialize IslandJS in your Rails app
+
+        rails islandjs:init
     
   MSG
 

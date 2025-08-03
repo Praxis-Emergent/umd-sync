@@ -1,6 +1,7 @@
-require 'spec_helper'
+require_relative '../../spec_helper'
+require 'islandjs_rails/configuration'
 
-RSpec.describe UmdSync::Configuration do
+RSpec.describe IslandjsRails::Configuration do
   let(:temp_dir) { create_temp_dir }
   
   before do

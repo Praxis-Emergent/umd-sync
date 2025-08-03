@@ -1,6 +1,7 @@
-require 'spec_helper'
+require_relative '../../spec_helper'
+require 'islandjs_rails/rails_helpers'
 
-RSpec.describe UmdSync::RailsHelpers do
+RSpec.describe IslandjsRails::RailsHelpers do
   let(:temp_dir) { create_temp_dir }
   let(:view_context) { 
     Class.new do
@@ -45,7 +46,7 @@ RSpec.describe UmdSync::RailsHelpers do
     allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('development'))
   end
 
-  describe '#umd_partials' do
+  describe '#island_partials' do
     before do
       # Create some partials
       partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
@@ -68,17 +69,17 @@ RSpec.describe UmdSync::RailsHelpers do
     end
     
     it 'renders available UMD partials' do
-      result = view_context.umd_partials
+      result = view_context.island_partials
       
       expect(result).to include('React UMD content')
     end
     
     it 'includes warning comments for missing partials in development' do
-      result = view_context.umd_partials
+      result = view_context.island_partials
       
       expect(result).to include('Missing partial for react-dom')
       expect(result).to include('Missing partial for lodash')
-      expect(result).to include('rails umd_sync:sync')
+      expect(result).to include('rails islandjs_rails:sync')
     end
   end
 
@@ -103,12 +104,12 @@ RSpec.describe UmdSync::RailsHelpers do
     it 'returns warning comment for missing partials in development' do
       result = view_context.umd_partial_for('vue')
       expect(result).to include('Missing partial for vue')
-      expect(result).to include('rails umd_sync:sync')
+      expect(result).to include('rails islandjs_rails:sync')
     end
 
     it 'returns empty string for unsupported packages in production' do
       allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
-      allow(UmdSync.core).to receive(:send).with(:supported_package?, 'vue').and_return(false)
+      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'vue').and_return(false)
       
       result = view_context.umd_partial_for('vue')
       expect(result).to eq('')
@@ -138,26 +139,26 @@ RSpec.describe UmdSync::RailsHelpers do
       mock_config = double('config')
       allow(mock_config).to receive(:partials_dir).and_return(Pathname.new('/tmp'))
       allow(mock_config).to receive(:package_json_path).and_return(Pathname.new('/tmp/package.json'))
-      allow(UmdSync).to receive(:configuration).and_return(mock_config)
-      allow(UmdSync.core).to receive(:send).with(:installed_packages).and_return([])
+      allow(IslandjsRails).to receive(:configuration).and_return(mock_config)
+      allow(IslandjsRails.core).to receive(:send).with(:installed_packages).and_return([])
       
       # Should not crash
-      expect { view_context.umd_partials }.not_to raise_error
+      expect { view_context.island_partials }.not_to raise_error
     end
 
-    it 'handles file system errors in umd_bundle_script' do
+    it 'handles file system errors in island_bundle_script' do
       allow(File).to receive(:read).and_raise(Errno::ENOENT)
       
-      result = view_context.umd_bundle_script
-      expect(result).to include('/umd_sync_bundle.js')
+      result = view_context.island_bundle_script
+      expect(result).to include('/islands_bundle.js')
     end
 
     it 'handles JSON parsing errors gracefully' do
       allow(File).to receive(:exist?).and_return(true)
       allow(File).to receive(:read).and_return('invalid json {')
       
-      result = view_context.umd_bundle_script
-      expect(result).to include('/umd_sync_bundle.js')
+      result = view_context.island_bundle_script
+      expect(result).to include('/islands_bundle.js')
     end
   end
 
@@ -222,8 +223,8 @@ RSpec.describe UmdSync::RailsHelpers do
 
   describe '#react_partials' do
     it 'renders React and ReactDOM partials when installed' do
-      allow(UmdSync).to receive(:package_installed?).with('react').and_return(true)
-      allow(UmdSync).to receive(:package_installed?).with('react-dom').and_return(true)
+      allow(IslandjsRails).to receive(:package_installed?).with('react').and_return(true)
+      allow(IslandjsRails).to receive(:package_installed?).with('react-dom').and_return(true)
       
       result = view_context.react_partials
       
@@ -240,7 +241,7 @@ RSpec.describe UmdSync::RailsHelpers do
       expect(result).to include('id="react-my-component"')
       expect(result).to include('data-user-id="123"')
       expect(result).to include('data-theme="dark"')
-      expect(result).to include('window.umd_sync.MyComponent')
+      expect(result).to include('window.islandjs_rails.MyComponent')
       expect(result).to include('function mountMyComponent()')
       expect(result).to include('function cleanupMyComponent()')
     end
@@ -279,52 +280,52 @@ RSpec.describe UmdSync::RailsHelpers do
     end
   end
 
-  describe '#umd_bundle_script' do
-    let(:manifest_path) { File.join(temp_dir, 'public', 'umd_sync_manifest.json') }
+  describe '#island_bundle_script' do
+    let(:manifest_path) { File.join(temp_dir, 'public', 'islands_manifest.json') }
     
     before do
       FileUtils.mkdir_p(File.dirname(manifest_path))
     end
     
     it 'uses webpack manifest when available' do
-      manifest = { 'umd_sync_bundle.js' => '/umd_sync_bundle.abc123.js' }
+      manifest = { 'islands_bundle.js' => '/islands_bundle.abc123.js' }
       File.write(manifest_path, JSON.generate(manifest))
       
-      result = view_context.umd_bundle_script
+      result = view_context.island_bundle_script
       
-      expect(result).to include('/umd_sync_bundle.abc123.js')
+      expect(result).to include('/islands_bundle.abc123.js')
     end
     
-    it 'uses umd_sync_bundle.js from manifest' do
+    it 'uses islands_bundle.js from manifest' do
       manifest = { 
-        'umd_sync_bundle.js' => '/umd_sync_bundle.def456.js',
+        'islands_bundle.js' => '/islands_bundle.def456.js',
         'other_bundle.js' => '/other_bundle.abc123.js' 
       }
       File.write(manifest_path, JSON.generate(manifest))
       
-      result = view_context.umd_bundle_script
+      result = view_context.island_bundle_script
       
-      expect(result).to include('/umd_sync_bundle.def456.js')
+      expect(result).to include('/islands_bundle.def456.js')
     end
     
-    it 'falls back to umd_sync_bundle.js when no manifest' do
-      result = view_context.umd_bundle_script
+    it 'falls back to islands_bundle.js when no manifest' do
+      result = view_context.island_bundle_script
       
-      expect(result).to include('/umd_sync_bundle.js')
+      expect(result).to include('/islands_bundle.js')
     end
     
     it 'handles invalid JSON gracefully' do
       File.write(manifest_path, 'invalid json{')
       
-      result = view_context.umd_bundle_script
+      result = view_context.island_bundle_script
       
-      expect(result).to include('/umd_sync_bundle.js')
+      expect(result).to include('/islands_bundle.js')
     end
   end
 
-  describe '#umd_sync' do
+  describe '#islands' do
     it 'includes both partials and bundle script' do
-      result = view_context.umd_sync
+      result = view_context.islands
       
       expect(result).to be_html_safe
       expect(result).to_not be_empty
@@ -334,11 +335,11 @@ RSpec.describe UmdSync::RailsHelpers do
   describe '#umd_versions_debug' do
     it 'shows debug info in development' do
       # Mock the core.installed_packages method and supported_package? calls
-      allow(UmdSync.core).to receive(:send).with(:installed_packages).and_return(['react', 'lodash'])
-      allow(UmdSync.core).to receive(:send).with(:supported_package?, 'react').and_return(true)
-      allow(UmdSync.core).to receive(:send).with(:supported_package?, 'lodash').and_return(true)
-      allow(UmdSync).to receive(:version_for).with('react').and_return('18.3.1')
-      allow(UmdSync).to receive(:version_for).with('lodash').and_return('4.17.21')
+      allow(IslandjsRails.core).to receive(:send).with(:installed_packages).and_return(['react', 'lodash'])
+      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'react').and_return(true)
+      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'lodash').and_return(true)
+      allow(IslandjsRails).to receive(:version_for).with('react').and_return('18.3.1')
+      allow(IslandjsRails).to receive(:version_for).with('lodash').and_return('4.17.21')
       
       result = view_context.umd_versions_debug
       
@@ -355,7 +356,7 @@ RSpec.describe UmdSync::RailsHelpers do
     
     it 'shows error message when debugging fails' do
       # Mock the core.installed_packages to raise an error at the method level
-      allow(UmdSync.core).to receive(:send).with(:installed_packages).and_raise(StandardError.new('Test error'))
+      allow(IslandjsRails.core).to receive(:send).with(:installed_packages).and_raise(StandardError.new('Test error'))
       
       result = view_context.umd_versions_debug
       

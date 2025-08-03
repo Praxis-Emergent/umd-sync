@@ -31,7 +31,7 @@ RSpec.describe 'Rails 8 Integration' do
       expect(File.exist?(webpack_path)).to be true
       
       content = File.read(webpack_path)
-      expect(content).to include('umd_sync')
+      expect(content).to include('islands')
       expect(content).to include('public') # UMD Sync asset location
     end
   end
@@ -73,7 +73,7 @@ RSpec.describe 'Rails 8 Integration' do
     it 'uses modern namespace convention' do
       result = view_context.react_component('TestComponent', {})
       
-      expect(result).to include('window.umd_sync.TestComponent')
+      expect(result).to include('window.islandjsRails.TestComponent')
     end
   end
 

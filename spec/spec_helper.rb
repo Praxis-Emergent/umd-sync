@@ -5,17 +5,17 @@ SimpleCov.start do
   add_filter '/spec/'
   add_filter '/vendor/'
   
-  add_group 'Core', 'lib/umd_sync/core.rb'
-  add_group 'Rails Integration', ['lib/umd_sync/rails_helpers.rb', 'lib/umd_sync/railtie.rb']
-  add_group 'CLI', 'lib/umd_sync/cli.rb'
-  add_group 'Configuration', 'lib/umd_sync/configuration.rb'
+  add_group 'Core', 'lib/islandjs_rails/core.rb'
+  add_group 'Rails Integration', ['lib/islandjs_rails/rails_helpers.rb', 'lib/islandjs_rails/railtie.rb']
+  add_group 'CLI', 'lib/islandjs_rails/cli.rb'
+  add_group 'Configuration', 'lib/islandjs_rails/configuration.rb'
   
   minimum_coverage 87
   minimum_coverage_by_file 40
 end
 
 require 'bundler/setup'
-require 'umd_sync'
+require 'islandjs_rails'
 require 'vcr'
 require 'webmock/rspec'
 require 'rails'
@@ -75,9 +75,9 @@ RSpec.configure do |config|
       FileUtils.rm_rf(dir) if Dir.exist?(dir)
     end
     
-    # Reset UmdSync configuration
-    UmdSync.instance_variable_set(:@configuration, nil)
-    UmdSync.instance_variable_set(:@core, nil)
+    # Reset IslandjsRails configuration
+    IslandjsRails.instance_variable_set(:@configuration, nil)
+    IslandjsRails.instance_variable_set(:@core, nil)
   end
 
   # Helper methods for tests
@@ -113,7 +113,7 @@ RSpec.configure do |config|
     end
 
     def with_configuration(**options, &block)
-      UmdSync.configure do |config|
+      IslandjsRails.configure do |config|
         options.each { |key, value| config.send("#{key}=", value) }
       end
       block.call

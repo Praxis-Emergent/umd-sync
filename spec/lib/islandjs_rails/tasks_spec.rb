@@ -1,10 +1,10 @@
-require 'spec_helper'
-require 'rake'
+require_relative '../../spec_helper'
+require 'islandjs_rails/tasks'
 
-RSpec.describe "UmdSync Rake Tasks" do
+RSpec.describe "Islandjs Rake Tasks" do
   before(:all) do
     # Load the tasks
-    load File.expand_path('../../../../lib/umd_sync/tasks.rb', __FILE__)
+    load File.expand_path('../../../../lib/islandjs_rails/tasks.rb', __FILE__)
   end
 
   before(:each) do
@@ -12,28 +12,28 @@ RSpec.describe "UmdSync Rake Tasks" do
     Rake.application.tasks.each(&:reenable)
   end
 
-  describe "umd_sync:init" do
-    it "calls UmdSync.init!" do
-      expect(UmdSync).to receive(:init!)
+  describe "islandjs:init" do
+    it "calls IslandjsRails.init!" do
+      expect(IslandjsRails).to receive(:init!)
       
-      Rake.application.invoke_task("umd_sync:init")
+      Rake.application.invoke_task("islandjs:init")
     end
   end
 
-  describe "umd_sync:install" do
+  describe "islandjs:install" do
     context "with package name only" do
-      it "calls UmdSync.install! with package name" do
-        expect(UmdSync).to receive(:install!).with("react", nil)
+      it "calls IslandjsRails.install! with package name" do
+        expect(IslandjsRails).to receive(:install!).with("react", nil)
         
-        Rake.application.invoke_task("umd_sync:install[react]")
+        Rake.application.invoke_task("islandjs:install[react]")
       end
     end
 
     context "with package name and version" do
-      it "calls UmdSync.install! with both arguments" do
-        expect(UmdSync).to receive(:install!).with("react", "18.3.1")
+      it "calls IslandjsRails.install! with both arguments" do
+        expect(IslandjsRails).to receive(:install!).with("react", "18.3.1")
         
-        Rake.application.invoke_task("umd_sync:install[react,18.3.1]")
+        Rake.application.invoke_task("islandjs:install[react,18.3.1]")
       end
     end
 
@@ -41,19 +41,19 @@ RSpec.describe "UmdSync Rake Tasks" do
       it "prints error message and exits" do
         expect do
           expect do
-            Rake.application.invoke_task("umd_sync:install[]")
+            Rake.application.invoke_task("islandjs:install[]")
           end.to output(/Please specify a package name/).to_stdout
         end.to raise_error(SystemExit)
       end
     end
   end
 
-  describe "umd_sync:update" do
+  describe "islandjs:update" do
     context "with package name only" do
-      it "calls UmdSync.update! with package name" do
-        expect(UmdSync).to receive(:update!).with("react", nil)
+      it "calls IslandjsRails.update! with package name" do
+        expect(IslandjsRails).to receive(:update!).with("react", nil)
         
-        Rake.application.invoke_task("umd_sync:update[react]")
+        Rake.application.invoke_task("islandjs:update[react]")
       end
     end
 
@@ -61,7 +61,7 @@ RSpec.describe "UmdSync Rake Tasks" do
       it "calls UmdSync.update! with both arguments" do
         expect(UmdSync).to receive(:update!).with("react", "18.3.1")
         
-        Rake.application.invoke_task("umd_sync:update[react,18.3.1]")
+        Rake.application.invoke_task("islandjs:update[react,18.3.1]")
       end
     end
 
@@ -69,19 +69,19 @@ RSpec.describe "UmdSync Rake Tasks" do
       it "prints error message and exits" do
         expect do
           expect do
-            Rake.application.invoke_task("umd_sync:update[]")
+            Rake.application.invoke_task("islandjs:update[]")
           end.to output(/Please specify a package name/).to_stdout
         end.to raise_error(SystemExit)
       end
     end
   end
 
-  describe "umd_sync:remove" do
+  describe "islandjs:remove" do
     context "with package name" do
       it "calls UmdSync.remove! with package name" do
         expect(UmdSync).to receive(:remove!).with("react")
         
-        Rake.application.invoke_task("umd_sync:remove[react]")
+        Rake.application.invoke_task("islandjs:remove[react]")
       end
     end
 
@@ -89,38 +89,38 @@ RSpec.describe "UmdSync Rake Tasks" do
       it "prints error message and exits" do
         expect do
           expect do
-            Rake.application.invoke_task("umd_sync:remove[]")
+            Rake.application.invoke_task("islandjs:remove[]")
           end.to output(/Please specify a package name/).to_stdout
         end.to raise_error(SystemExit)
       end
     end
   end
 
-  describe "umd_sync:sync" do
+  describe "islandjs:sync" do
     it "calls UmdSync.sync!" do
       expect(UmdSync).to receive(:sync!)
       
-      Rake.application.invoke_task("umd_sync:sync")
+      Rake.application.invoke_task("islandjs:sync")
     end
   end
 
-  describe "umd_sync:status" do
+  describe "islandjs:status" do
     it "calls UmdSync.status!" do
       expect(UmdSync).to receive(:status!)
       
-      Rake.application.invoke_task("umd_sync:status")
+      Rake.application.invoke_task("islandjs:status")
     end
   end
 
-  describe "umd_sync:clean" do
+  describe "islandjs:clean" do
     it "calls UmdSync.clean!" do
       expect(UmdSync).to receive(:clean!)
       
-      Rake.application.invoke_task("umd_sync:clean")
+      Rake.application.invoke_task("islandjs:clean")
     end
   end
 
-  describe "umd_sync:config" do
+  describe "islandjs:config" do
     it "displays configuration information" do
       config = double('configuration')
       allow(UmdSync).to receive(:configuration).and_return(config)
@@ -132,7 +132,7 @@ RSpec.describe "UmdSync Rake Tasks" do
         global_name_overrides: { 'react' => 'React' }
       )
 
-      expect { Rake.application.invoke_task("umd_sync:config") }.to output(
+      expect { Rake.application.invoke_task("islandjs:config") }.to output(
         a_string_including("📊 UmdSync Configuration")
         .and(including("Package.json path: /path/to/package.json"))
         .and(including("Partials directory: /path/to/partials"))

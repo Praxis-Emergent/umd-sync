@@ -1,6 +1,7 @@
-require 'spec_helper'
+require_relative '../../spec_helper'
+require 'islandjs_rails/core'
 
-RSpec.describe UmdSync::Core do
+RSpec.describe IslandjsRails::Core do
   let(:temp_dir) { create_temp_dir }
   let(:core) { described_class.new }
   
@@ -95,7 +96,7 @@ RSpec.describe UmdSync::Core do
       
       expect {
         core.download_umd_content(url)
-      }.to raise_error(UmdSync::Error, /Failed to download UMD/)
+      }.to raise_error(IslandjsRails::Error, /Failed to download UMD/)
     end
   end
 
@@ -152,7 +153,7 @@ RSpec.describe UmdSync::Core do
       webpack_content = File.read(webpack_path)
       expect(webpack_content).to include('"react": "React"')
       expect(webpack_content).to include('"lodash": "_"')
-      expect(webpack_content).to include('UmdSync managed externals')
+      expect(webpack_content).to include('IslandjsRails managed externals')
     end
 
     it 'preserves other webpack configuration' do
@@ -169,7 +170,7 @@ RSpec.describe UmdSync::Core do
       partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
       expect(Dir.exist?(partials_dir)).to be false
       
-      expect { core.init! }.to output(/Initializing UmdSync/).to_stdout
+      expect { core.init! }.to output(/Initializing IslandjsRails/).to_stdout
       
       expect(Dir.exist?(partials_dir)).to be true
     end
@@ -190,8 +191,8 @@ RSpec.describe UmdSync::Core do
       
       expect(File.exist?(webpack_path)).to be true
       content = File.read(webpack_path)
-      expect(content).to include('umd_sync')
-      expect(content).to include('./app/javascript/umd_sync/index.js')
+      expect(content).to include('islandjs_rails')
+      expect(content).to include('./app/javascript/islandjs_rails/index.js')
     end
   end
 
@@ -204,7 +205,7 @@ RSpec.describe UmdSync::Core do
     end
 
     it 'shows status of packages' do
-      expect { core.status! }.to output(/UmdSync Status/).to_stdout
+      expect { core.status! }.to output(/IslandjsRails Status/).to_stdout
       expect { core.status! }.to output(/✅ react@18.3.1/).to_stdout
       expect { core.status! }.to output(/❌ lodash@4.17.21/).to_stdout
     end
@@ -237,7 +238,7 @@ RSpec.describe UmdSync::Core do
       
       webpack_content_after = File.read(File.join(temp_dir, 'webpack.config.js'))
       expect(webpack_content_after).not_to include('"react": "React"')
-      expect(webpack_content_after).to include('UmdSync managed externals')
+      expect(webpack_content_after).to include('IslandjsRails managed externals')
     end
   end
 
@@ -258,14 +259,14 @@ RSpec.describe UmdSync::Core do
     end
 
     it 'raises error for non-installed package' do
-      expect { core.remove!('vue') }.to raise_error(UmdSync::PackageNotFoundError)
+      expect { core.remove!('vue') }.to raise_error(IslandjsRails::PackageNotFoundError)
     end
 
     it 'handles yarn command failures' do
       allow(Open3).to receive(:capture3).with('yarn remove react', chdir: Rails.root)
                                         .and_return(['', 'Error removing', double(success?: false)])
       
-      expect { core.remove!('react') }.to raise_error(UmdSync::YarnError, /Failed to remove react/)
+      expect { core.remove!('react') }.to raise_error(IslandjsRails::YarnError, /Failed to remove react/)
     end
 
     it 'removes partial file and updates webpack externals' do
@@ -333,7 +334,7 @@ RSpec.describe UmdSync::Core do
         allow(Open3).to receive(:capture3).with('yarn add react', chdir: Rails.root)
                                           .and_return(['', 'Network error', double(success?: false)])
         
-        expect { core.send(:add_package_via_yarn, 'react') }.to raise_error(UmdSync::YarnError, /Failed to add react/)
+        expect { core.send(:add_package_via_yarn, 'react') }.to raise_error(IslandjsRails::YarnError, /Failed to add react/)
       end
 
       it 'resets cached package.json' do
@@ -366,7 +367,7 @@ RSpec.describe UmdSync::Core do
         allow(Open3).to receive(:capture3).with('yarn upgrade react', chdir: Rails.root)
                                           .and_return(['', 'Upgrade failed', double(success?: false)])
         
-        expect { core.send(:yarn_update!, 'react') }.to raise_error(UmdSync::YarnError, /Failed to update react/)
+        expect { core.send(:yarn_update!, 'react') }.to raise_error(IslandjsRails::YarnError, /Failed to update react/)
       end
     end
 
@@ -382,7 +383,7 @@ RSpec.describe UmdSync::Core do
         allow(Open3).to receive(:capture3).with('yarn remove react', chdir: Rails.root)
                                           .and_return(['', 'Remove failed', double(success?: false)])
         
-        expect { core.send(:remove_package_via_yarn, 'react') }.to raise_error(UmdSync::YarnError, /Failed to remove react/)
+        expect { core.send(:remove_package_via_yarn, 'react') }.to raise_error(IslandjsRails::YarnError, /Failed to remove react/)
       end
     end
   end
@@ -451,7 +452,7 @@ RSpec.describe UmdSync::Core do
         
         updated_content = File.read(File.join(temp_dir, 'webpack.config.js'))
         expect(updated_content).to include('externals: {')
-        expect(updated_content).to include('// UmdSync managed externals - do not edit manually')
+        expect(updated_content).to include('// IslandjsRails managed externals - do not edit manually')
         expect(updated_content).not_to include('"react": "React"')
       end
 
@@ -470,7 +471,7 @@ RSpec.describe UmdSync::Core do
         create_temp_package_json(temp_dir, {'non-existent-package' => '1.0.0'})
         allow(core).to receive(:find_working_umd_url).and_return(nil)
         
-        expect { core.send(:install_package!, 'non-existent-package') }.to raise_error(UmdSync::UmdNotFoundError)
+        expect { core.send(:install_package!, 'non-existent-package') }.to raise_error(IslandjsRails::UmdNotFoundError)
       end
 
       it 'handles network errors gracefully' do
@@ -524,7 +525,7 @@ RSpec.describe UmdSync::Core do
       expect(content).to include('GlobalName')
       expect(content).to include('atob(') # Base64 encoded content
       expect(content).to include('createElement') # Dynamic script injection
-      expect(content).to include('Generated by UmdSync')
+      expect(content).to include('Generated by IslandjsRails')
     end
 
     it 'verifies package installation status correctly' do
@@ -591,7 +592,7 @@ RSpec.describe UmdSync::Core do
     it 'raises error if package not installed' do
       create_temp_package_json(temp_dir, {})
       
-      expect { core.update!('missing-package') }.to raise_error(UmdSync::PackageNotFoundError)
+      expect { core.update!('missing-package') }.to raise_error(IslandjsRails::PackageNotFoundError)
     end
   end
 
@@ -643,7 +644,7 @@ RSpec.describe UmdSync::Core do
     end
 
     describe '#uncomment_react_imports!' do
-      let(:index_js_path) { File.join(temp_dir, 'app', 'javascript', 'umd_sync', 'index.js') }
+      let(:index_js_path) { File.join(temp_dir, 'app', 'javascript', 'islandjs_rails/index.js') }
       
       before do
         FileUtils.mkdir_p(File.dirname(index_js_path))
@@ -652,7 +653,7 @@ RSpec.describe UmdSync::Core do
       it 'uncomments React imports in template file' do
         # Create the exact template format expected by the method
         File.write(index_js_path, <<~JS)
-          // UmdSync Entry Point
+          // IslandjsRails Entry Point
           // Import your JavaScript modules here
           // import HelloWorld from './components/HelloWorld';
 
@@ -684,7 +685,7 @@ RSpec.describe UmdSync::Core do
     end
 
     describe '#create_hello_world_component!' do
-      let(:components_dir) { File.join(temp_dir, 'app', 'javascript', 'umd_sync', 'components') }
+      let(:components_dir) { File.join(temp_dir, 'app', 'javascript', 'islandjs_rails', 'components') }
       let(:hello_world_path) { File.join(components_dir, 'HelloWorld.jsx') }
       
       before do
@@ -704,7 +705,7 @@ RSpec.describe UmdSync::Core do
         content = File.read(hello_world_path)
         expect(content).to include('React')
         expect(content).to include('useState')
-        expect(content).to include('UmdSync')
+        expect(content).to include('IslandjsRails')
       end
 
       it 'skips if component already exists' do
@@ -752,11 +753,10 @@ RSpec.describe UmdSync::Core do
 
     describe '#offer_demo_route!' do
       before do
-        allow(core).to receive(:demo_route_exists?).and_return(false)
+        allow(STDIN).to receive(:gets).and_return("y\n")
       end
 
       it 'creates demo route when user agrees' do
-        allow(STDIN).to receive(:gets).and_return("y\n")
         allow(core).to receive(:create_demo_route!)
         
         expect { core.send(:offer_demo_route!) }.to output(/Would you like to create a demo route/).to_stdout
@@ -838,7 +838,7 @@ RSpec.describe UmdSync::Core do
       it 'skips when all dependencies are installed' do
         # Create package.json with all essential deps
         dev_deps = {}
-        UmdSync::Core::ESSENTIAL_DEPENDENCIES.each do |dep|
+        IslandjsRails::Core::ESSENTIAL_DEPENDENCIES.each do |dep|
           package_name = dep.split('@').first
           dev_deps[package_name] = '1.0.0'
         end
@@ -865,29 +865,29 @@ RSpec.describe UmdSync::Core do
     end
 
     describe '#create_scaffolded_structure!' do
-      let(:umd_sync_dir) { File.join(temp_dir, 'app', 'javascript', 'umd_sync') }
-      let(:components_dir) { File.join(umd_sync_dir, 'components') }
+      let(:islandjs_dir) { File.join(temp_dir, 'app', 'javascript', 'islandjs') }
+      let(:components_dir) { File.join(islandjs_dir, 'components') }
       
       it 'creates directory structure and files' do
         # Ensure the directory doesn't exist first
-        FileUtils.rm_rf(umd_sync_dir) if Dir.exist?(umd_sync_dir)
+        FileUtils.rm_rf(islandjs_dir) if Dir.exist?(islandjs_dir)
         
         Dir.chdir(temp_dir) do
           expect { core.send(:create_scaffolded_structure!) }.to output(/🏗️  Creating scaffolded structure/).to_stdout
         end
         
         expect(Dir.exist?(components_dir)).to be true
-        expect(File.exist?(File.join(umd_sync_dir, 'index.js'))).to be true
+        expect(File.exist?(File.join(islandjs_dir, 'index.js'))).to be true
         expect(File.exist?(File.join(components_dir, '.gitkeep'))).to be true
       end
 
       it 'skips existing files' do
-        FileUtils.mkdir_p(umd_sync_dir)
-        File.write(File.join(umd_sync_dir, 'index.js'), 'existing')
+        FileUtils.mkdir_p(islandjs_dir)
+        File.write(File.join(islandjs_dir, 'index.js'), 'existing')
         
         expect { core.send(:create_scaffolded_structure!) }.to output(/already exists/).to_stdout
         
-        content = File.read(File.join(umd_sync_dir, 'index.js'))
+        content = File.read(File.join(islandjs_dir, 'index.js'))
         expect(content).to eq('existing')
       end
     end
@@ -916,12 +916,12 @@ RSpec.describe UmdSync::Core do
         expect { core.send(:inject_umd_partials_into_layout!) }.to output(/Auto-injected UMD helper/).to_stdout
         
         content = File.read(layout_path)
-        expect(content).to include('<%= umd_sync %>')
+        expect(content).to include('<%= islands %>')
         expect(content).to include('UmdSync: Auto-injected')
       end
 
       it 'skips if already injected' do
-        File.write(layout_path, '<%= umd_sync %>')
+        File.write(layout_path, '<%= islands %>')
         allow(Dir).to receive(:pwd).and_return(temp_dir)
         
         expect { core.send(:inject_umd_partials_into_layout!) }.to output(/already present/).to_stdout
@@ -1023,12 +1023,12 @@ RSpec.describe UmdSync::Core do
     end
 
     describe '#create_demo_controller!' do
-      let(:controller_path) { File.join(temp_dir, 'app', 'controllers', 'umd_sync_demo_controller.rb') }
+      let(:controller_path) { File.join(temp_dir, 'app', 'controllers', 'islandjs_demo_controller.rb') }
       
       it 'creates demo controller' do
         allow(Dir).to receive(:pwd).and_return(temp_dir)
         
-        expect { core.send(:create_demo_controller!) }.to output(/Created.*umd_sync_demo_controller/).to_stdout
+        expect { core.send(:create_demo_controller!) }.to output(/Created.*islandjs_demo_controller/).to_stdout
         
         expect(File.exist?(controller_path)).to be true
         content = File.read(controller_path)
@@ -1038,7 +1038,7 @@ RSpec.describe UmdSync::Core do
     end
 
     describe '#create_demo_view!' do
-      let(:view_path) { File.join(temp_dir, 'app', 'views', 'umd_sync_demo', 'react.html.erb') }
+      let(:view_path) { File.join(temp_dir, 'app', 'views', 'islandjs_demo', 'react.html.erb') }
       
       it 'creates demo view' do
         allow(Dir).to receive(:pwd).and_return(temp_dir)
@@ -1067,7 +1067,7 @@ RSpec.describe UmdSync::Core do
         
         content = File.read(routes_file)
         expect(content).to include("get 'umd-sync/react'")
-        expect(content).to include('umd_sync_demo#react')
+        expect(content).to include('islandjs_demo#react')
       end
 
       it 'warns when routes file missing' do

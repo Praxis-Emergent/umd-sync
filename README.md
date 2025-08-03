@@ -1,39 +1,39 @@
-# UmdSync
+# IslandJS Rails
 
 [![Test Coverage](https://img.shields.io/badge/coverage-89.09%25-brightgreen.svg)](coverage/index.html)
 [![RSpec Tests](https://img.shields.io/badge/tests-162%20passing-brightgreen.svg)](spec/)
 [![Rails 8 Ready](https://img.shields.io/badge/Rails%208-Ready-brightgreen.svg)](#rails-8-ready)
 [![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.0-red.svg)](https://www.ruby-lang.org/)
 
-**Simplified UMD dependency management for Rails applications.**
+**Simplified UMD dependency management for Rails applications with zero webpack complexity**
 
-UmdSync is a Rails gem that automates UMD (Universal Module Definition) dependency management. Instead of complex webpack configurations for external libraries, UmdSync downloads UMD builds from CDNs and integrates them into your Rails application using ERB partials.
+IslandJS Rails enables React, Vue, and other JavaScript islands in Rails apps by loading UMD libraries from CDNs. No complex webpack configurations, no bundle bloat - just clean, fast JavaScript integration that works with Rails' asset pipeline.
 
 ESM might be "the future", but UMD is "the forever" because it just works everywhere without fuss.
 
-## Why UmdSync?
+## Why IslandJS Rails?
 
 ### Perfect for Rails 8
-UmdSync aligns perfectly with **Rails 8's philosophy** of simplicity and convention over configuration:
+IslandJS Rails aligns perfectly with **Rails 8's philosophy** of simplicity and convention over configuration:
 
-- **Asset Pipeline Simplification**: Rails 8 streamlined assets - UMD Sync fits seamlessly
+- **Asset Pipeline Simplification**: Rails 8 streamlined assets - IslandJS Rails fits seamlessly
 - **Zero Webpack Complexity**: No complex bundler configs, just modern JavaScript  
 - **Hotwire + React Islands**: The sweet spot for Rails 8 frontend development
 - **Fast Development & Deployment**: Instant builds, no library rebundling
 
-### The Problem UmdSync Solves
+### The Problem IslandJS Rails Solves
 Modern Rails developers face a painful choice:
 - **Bundle everything**: Massive webpack configs, slow builds, bundle bloat
 - **Skip modern JS**: Miss out on React, Vue, and popular npm packages with UMD builds
 
-**Important Note:** UmdSync works with packages that ship UMD builds. Many popular packages (React, Vue, Lodash, D3, Chart.js) have UMD builds, but modern packages like @tanstack/query, Zustand, and Emotion do not. React 19+ removed UMD builds entirely. Future versions may support local UMD generation for some packages.
+**Important Note:** IslandJS Rails works with packages that ship UMD builds. Many popular packages (React, Vue, Lodash, D3, Chart.js) have UMD builds, but modern packages like @tanstack/query, Zustand, and Emotion do not. React 19+ removed UMD builds entirely. Future versions may support local UMD generation for some packages.
 
-### The UmdSync Solution
+### The IslandJS Rails Solution
 ```bash
 # Instead of complex webpack configuration:
-rails "umd_sync:install[react]"
-rails "umd_sync:install[lodash]"
-rails "umd_sync:install[vue]"
+rails "islandjs:install[react]"
+rails "islandjs:install[lodash]"
+rails "islandjs:install[vue]"
 ```
 
 **Result**: Zero webpack configuration, instant builds, access to hundreds of UMD packages.
@@ -57,7 +57,7 @@ rails "umd_sync:install[vue]"
 
 ## Philosophy
 
-UmdSync follows the Rails philosophy:
+IslandJS Rails follows the Rails philosophy:
 - **Convention over Configuration**: Smart defaults, minimal setup
 - **Don't Repeat Yourself**: One command replaces complex configurations
 - **Optimize for Programmer Happiness**: Simple, powerful, intuitive
@@ -68,18 +68,18 @@ UmdSync follows the Rails philosophy:
 
 ```ruby
 # Add to your Gemfile
-gem 'umd_sync'
+gem 'islandjs-rails'
 ```
 
 ```bash
 bundle install
-rails umd_sync:init
+rails islandjs:init
 ```
 
 ### Install React
 ```bash
-rails "umd_sync:install[react,18.3.1]"
-rails "umd_sync:install[react-dom,18.3.1]"
+rails "islandjs:install[react,18.3.1]"
+rails "islandjs:install[react-dom,18.3.1]"
 ```
 
 ### Render React Components
@@ -104,33 +104,33 @@ function DashboardApp({ userId }) {
 
 #### Rails Tasks
 ```bash
-# Initialize UmdSync in your project
-rails umd_sync:init
+# Initialize IslandJS Rails in your project
+rails islandjs:init
 
 # Install packages (adds to package.json + creates UMD partial)
-rails "umd_sync:install[react]"
-rails "umd_sync:install[react,18.3.1]"       # With specific version
-rails "umd_sync:install[lodash]"
+rails "islandjs:install[react]"
+rails "islandjs:install[react,18.3.1]"       # With specific version
+rails "islandjs:install[lodash]"
 
 # Update packages (updates package.json + refreshes UMD partial)
-rails "umd_sync:update[react]"
-rails "umd_sync:update[react,18.3.1]"       # To specific version
+rails "islandjs:update[react]"
+rails "islandjs:update[react,18.3.1]"       # To specific version
 
 # Remove packages (removes from package.json + deletes UMD partial)
-rails "umd_sync:remove[react]"
-rails "umd_sync:remove[lodash]"
+rails "islandjs:remove[react]"
+rails "islandjs:remove[lodash]"
 
 # Sync all packages with current package.json
-rails umd_sync:sync
+rails islandjs:sync
 
 # Show status of all UMD packages
-rails umd_sync:status
+rails islandjs:status
 
 # Clean all UMD files (removes ALL partials)
-rails umd_sync:clean
+rails islandjs:clean
 
 # Show configuration
-rails umd_sync:config
+rails islandjs:config
 ```
 
 ## 📦 Working with Scoped Packages
@@ -149,15 +149,15 @@ When installing scoped packages, you **must** include the full package name with
 
 ```bash
 # ✅ Correct - Full scoped package name
-rails "umd_sync:install[@solana/web3.js,1.98.2]"
-rails "umd_sync:install[@mui/material,5.14.1]"
-rails "umd_sync:install[@emotion/react,11.11.1]"
+rails "islandjs:install[@solana/web3.js,1.98.2]"
+rails "islandjs:install[@mui/material,5.14.1]"
+rails "islandjs:install[@emotion/react,11.11.1]"
 
 # ❌ Incorrect - Missing .js suffix
-rails "umd_sync:install[@solana/web3,1.98.2]"
+rails "islandjs:install[@solana/web3,1.98.2]"
 
 # ❌ Incorrect - Missing scope
-rails "umd_sync:install[web3.js,1.98.2]"
+rails "islandjs:install[web3.js,1.98.2]"
 ```
 
 ### Shell Escaping
@@ -166,18 +166,18 @@ The `@` symbol is handled automatically by Rails task syntax when using double q
 
 ```bash
 # ✅ Works perfectly
-rails "umd_sync:install[@solana/web3.js]"
+rails "islandjs:install[@solana/web3.js]"
 
 # ✅ Also works (with version)
-rails "umd_sync:install[@solana/web3.js,1.98.2]"
+rails "islandjs:install[@solana/web3.js,1.98.2]"
 
 # ⚠️ May not work in some shells without quotes
-rails umd_sync:install[@solana/web3.js]  # Avoid this
+rails islandjs:install[@solana/web3.js]  # Avoid this
 ```
 
 ### Global Name Detection
 
-UmdSync automatically converts scoped package names to valid JavaScript global names:
+IslandJS Rails automatically converts scoped package names to valid JavaScript global names:
 
 ```ruby
 # Automatic conversions:
@@ -192,8 +192,8 @@ UmdSync automatically converts scoped package names to valid JavaScript global n
 You can override the automatic global name detection for scoped packages:
 
 ```ruby
-# config/initializers/umd_sync.rb
-UmdSync.configure do |config|
+# config/initializers/islandjs.rb
+IslandJS Rails.configure do |config|
   config.global_name_overrides = {
     '@solana/web3.js' => 'solanaWeb3',      # Already built-in
     '@mui/material' => 'MaterialUI',        # Custom override
@@ -228,13 +228,13 @@ export default SolanaComponent;
 
 ### Webpack Externals
 
-UmdSync automatically configures webpack externals for scoped packages:
+IslandJS Rails automatically configures webpack externals for scoped packages:
 
 ```javascript
 // webpack.config.js (auto-generated)
 module.exports = {
   externals: {
-    // UmdSync managed externals - do not edit manually
+    // IslandJS Rails managed externals - do not edit manually
     "@solana/web3.js": "solanaWeb3",
     "@mui/material": "muiMaterial",
     "react": "React",
@@ -246,13 +246,13 @@ module.exports = {
 
 ### Common Scoped Packages
 
-Here are popular scoped packages that work well with UmdSync:
+Here are popular scoped packages that work well with IslandJS Rails:
 
 | Package | Command | Global Name | Use Case |
 |---------|---------|-------------|----------|
-| `@solana/web3.js` | `rails "umd_sync:install[@solana/web3.js]"` | `solanaWeb3` | Solana blockchain |
-| `@mui/material` | `rails "umd_sync:install[@mui/material]"` | `muiMaterial` | Material UI components |
-| `@emotion/react` | `rails "umd_sync:install[@emotion/react]"` | `emotionReact` | CSS-in-JS styling |
+| `@solana/web3.js` | `rails "islandjs:install[@solana/web3.js]"` | `solanaWeb3` | Solana blockchain |
+| `@mui/material` | `rails "islandjs:install[@mui/material]"` | `muiMaterial` | Material UI components |
+| `@emotion/react` | `rails "islandjs:install[@emotion/react]"` | `emotionReact` | CSS-in-JS styling |
 
 ### Troubleshooting Scoped Packages
 
@@ -262,14 +262,14 @@ Here are popular scoped packages that work well with UmdSync:
 npm view @solana/web3.js
 
 # Ensure you're using the full name
-rails "umd_sync:install[@solana/web3.js]"  # ✅ Correct
-rails "umd_sync:install[@solana/web3]"     # ❌ Wrong
+rails "islandjs:install[@solana/web3.js]"  # ✅ Correct
+rails "islandjs:install[@solana/web3]"     # ❌ Wrong
 ```
 
 **Issue: Global name conflicts**
 ```ruby
 # Override in configuration
-UmdSync.configure do |config|
+IslandJS Rails.configure do |config|
   config.global_name_overrides = {
     '@conflicting/package' => 'UniqueGlobalName'
   }
@@ -280,25 +280,25 @@ end
 ```bash
 # Some scoped packages don't ship UMD builds
 # Check package documentation or try alternatives
-# Future UmdSync versions will support local UMD generation
+# Future IslandJS Rails versions will support local UMD generation
 ```
 
 ### ⚡ Quick Reference
 
 | Command | What it does | Example |
 |---------|--------------|---------|
-| `install` | Adds package via yarn + downloads UMD + creates partial | `rails umd_sync:install[react]` |
-| `update` | Updates package version + refreshes UMD | `rails umd_sync:update[react,18.3.1]` |
-| `remove` | Removes package via yarn + deletes partial | `rails umd_sync:remove[react]` |
-| `sync` | Re-downloads UMDs for all packages in package.json | `rails umd_sync:sync` |
-| `status` | Shows which packages have UMD partials | `rails umd_sync:status` |
-| `clean` | Removes ALL UMD partials (destructive!) | `rails umd_sync:clean` |
+| `install` | Adds package via yarn + downloads UMD + creates partial | `rails islandjs:install[react]` |
+| `update` | Updates package version + refreshes UMD | `rails islandjs:update[react,18.3.1]` |
+| `remove` | Removes package via yarn + deletes partial | `rails islandjs:remove[react]` |
+| `sync` | Re-downloads UMDs for all packages in package.json | `rails islandjs:sync` |
+| `status` | Shows which packages have UMD partials | `rails islandjs:status` |
+| `clean` | Removes ALL UMD partials (destructive!) | `rails islandjs:clean` |
 
 ### Configuration
 
 ```ruby
-# config/initializers/umd_sync.rb
-UmdSync.configure do |config|
+# config/initializers/islandjs.rb
+IslandJS Rails.configure do |config|
   config.partials_dir = Rails.root.join('app/views/shared/umd')
   config.webpack_config_path = Rails.root.join('webpack.config.js')
 end
@@ -308,11 +308,11 @@ end
 
 ### Helpers
 
-#### `umd_sync`
+#### `islands`
 Single helper that includes all UMD partials and your webpack bundle.
 
 ```erb
-<%= umd_sync %>
+<%= islands %>
 ```
 
 #### `react_component(name, props, options)`
@@ -324,7 +324,7 @@ Renders a React component with Turbo-compatible lifecycle.
   theme: 'dark' 
 }, {
   container_id: 'profile-widget',
-  namespace: 'window.MyApp'
+  namespace: 'window.islandjsRailsApp'
 }) %>
 ```
 
@@ -334,7 +334,7 @@ Renders a React component with Turbo-compatible lifecycle.
 
 ```ruby
 # Override automatic global name detection
-UmdSync.configure do |config|
+IslandJS Rails.configure do |config|
   config.global_name_overrides = {
     '@mui/material' => 'MaterialUI',
     'react-router-dom' => 'ReactRouterDOM'
@@ -346,7 +346,7 @@ end
 
 ```javascript
 // Create your own namespace
-window.MyApp = {
+window.islandjsRailsApp = {
   React: window.React,
   UI: window.MaterialUI,
   Utils: window._,
@@ -354,12 +354,12 @@ window.MyApp = {
 };
 
 // Use in components
-const { React, UI, Utils } = window.MyApp;
+const { React, UI, Utils } = window.islandjsRailsApp;
 ```
 
 ### Webpack Integration
 
-UmdSync automatically updates your webpack externals:
+IslandJS Rails automatically updates your webpack externals:
 
 ```javascript
 // webpack.config.js (auto-generated)
@@ -377,38 +377,38 @@ module.exports = {
 ### Core Methods (for programmatic use)
 
 ```ruby
-# Initialize UmdSync in project
-UmdSync.init!
+# Initialize IslandJS Rails in project
+IslandJS Rails.init!
 
 # Install a package and create partial
-UmdSync.install!('react', '18.3.1')
+IslandJS Rails.install!('react', '18.3.1')
 
 # Update an existing package
-UmdSync.update!('react', '18.3.1')
+IslandJS Rails.update!('react', '18.3.1')
 
 # Remove a package (from package.json + delete partial)
-UmdSync.remove!('react')
+IslandJS Rails.remove!('react')
 
 # Sync all packages
-UmdSync.sync!
+IslandJS Rails.sync!
 
 # Show status
-UmdSync.status!
+IslandJS Rails.status!
 
 # Clean all partials and reset webpack externals
-UmdSync.clean!
+IslandJS Rails.clean!
 
 # Check what packages are installed
-UmdSync.package_installed?('react')
+IslandJS Rails.package_installed?('react')
 
 # Get version for a package
-UmdSync.version_for('react')
+IslandJS Rails.version_for('react')
 ```
 
 ### Configuration Options
 
 ```ruby
-UmdSync.configure do |config|
+IslandJS Rails.configure do |config|
   # Directory for UMD partials (default: app/views/shared/umd)
   config.partials_dir = Rails.root.join('app/views/shared/umd')
   
@@ -431,14 +431,14 @@ end
 
 ```bash
 # Install dependencies
-rails umd_sync:install[react]
-rails umd_sync:install[react-dom]  
-rails umd_sync:install[chart.js]
+rails islandjs:install[react]
+rails islandjs:install[react-dom]  
+rails islandjs:install[chart.js]
 ```
 
 ```erb
 <!-- app/views/dashboard/show.html.erb -->
-<%= umd_sync %>
+<%= islands %>
 
 <div id="dashboard-root"></div>
 
@@ -504,7 +504,7 @@ document.addEventListener('turbo:before-cache', () => {
 **Global name conflicts:**
 ```ruby
 # Override automatic detection
-UmdSync.configure do |config|
+IslandJS Rails.configure do |config|
   config.global_name_overrides = {
     'conflicting-package' => 'UniqueGlobalName'
   }
@@ -514,11 +514,11 @@ end
 **Webpack externals not updating:**
 ```bash
 # Sync to update externals
-rails umd_sync:sync
+rails islandjs:sync
 
 # Or clean and reinstall
-rails umd_sync:clean
-rails umd_sync:install[react]
+rails islandjs:clean
+rails islandjs:install[react]
 ```
 
 ## Contributing
@@ -537,7 +537,7 @@ rails umd_sync:install[react]
 bundle exec rspec
 
 # Run specific test file
-bundle exec rspec spec/lib/umd_sync/core_spec.rb
+bundle exec rspec spec/lib/islandjs_rails/core_spec.rb
 
 # Run with coverage report
 bundle exec rspec --format documentation
@@ -550,12 +550,12 @@ MIT License - see LICENSE file for details.
 ## Structure
 
 ```
-lib/umd_sync/
+lib/islandjs_rails/
 ├── spec/
 │   ├── spec_helper.rb                    # Test setup and mocking
 │   ├── lib/
-│   │   ├── umd_sync_spec.rb             # Main module tests
-│   │   └── umd_sync/
+│   │   ├── islandjs_rails_spec.rb             # Main module tests
+│   │   └── islandjs_rails/
 │   │       ├── core_spec.rb             # Core functionality tests
 │   │       ├── rails_helpers_spec.rb    # Rails helpers tests
 │   │       ├── configuration_spec.rb    # Configuration tests
@@ -576,7 +576,7 @@ lib/umd_sync/
 ### From the gem directory:
 
 ```bash
-cd lib/umd_sync
+cd lib/islandjs_rails
 bundle install
 bundle exec rspec
 ```
@@ -584,9 +584,12 @@ bundle exec rspec
 ### Individual test files:
 
 ```bash
-bundle exec rspec spec/lib/umd_sync/core_spec.rb
-bundle exec rspec spec/lib/umd_sync/rails_helpers_spec.rb
-bundle exec rspec spec/lib/umd_sync/configuration_spec.rb
+bundle exec rspec spec/lib/islandjs_rails/core_spec.rb
+bundle exec rspec spec/lib/islandjs_rails/rails_helpers_spec.rb
+bundle exec rspec spec/lib/islandjs_rails/configuration_spec.rb
+bundle exec rspec spec/lib/islandjs_rails/core_spec.rb
+bundle exec rspec spec/lib/islandjs_rails/rails_helpers_spec.rb
+bundle exec rspec spec/lib/islandjs_rails/configuration_spec.rb
 ```
 
 ### Coverage Reports:
@@ -613,7 +616,7 @@ open coverage/index.html
 - **Rails integration**: View helpers, React component mounting, Turbo compatibility
 - **Configuration**: All configuration options and global name overrides
 - **Error handling**: Network failures, missing packages, invalid configurations
-- **CLI simulation**: All major UmdSync operations and rake tasks
+- **CLI simulation**: All major IslandJS Rails operations and rake tasks
 
 ### Realistic Testing
 - **Mock Rails app**: Complete package.json, webpack.config.js, directory structure
@@ -643,7 +646,7 @@ All dependencies are isolated to this test suite and won't affect applications u
 
 ## Adding New Tests
 
-When adding new UmdSync functionality:
+When adding new IslandJS Rails functionality:
 
 1. Add tests to the appropriate test file
 2. Use the provided test helpers for consistency
@@ -657,9 +660,9 @@ This test suite is designed to work with any CI system:
 
 ```yaml
 # Example GitHub Actions
-- name: Run UmdSync tests
+- name: Run IslandJS Rails tests
   run: |
-    cd lib/umd_sync
+    cd lib/islandjs_rails
     bundle install
     bundle exec rake test
 ```
@@ -677,7 +680,7 @@ This test suite is designed to work with any CI system:
 - **Smart Build Detection**: Analyze package structure to generate optimal UMD configurations
 - **Local-Only Approach**: No external dependencies - everything generated and cached locally
 - **Community Build Recipes**: Share proven build configurations via GitHub, not file storage
-- **Zero-Config Generation**: `UmdSync.install_package!('@tanstack/query', generate: true)` just works
+- **Zero-Config Generation**: `IslandJS Rails.install_package!('@tanstack/query', generate: true)` just works
 - **Target Coverage**: Support 30-40% of packages that lack UMD builds (focusing on simple, commonly-used libraries)
 
 ### SSR Preview
@@ -690,9 +693,9 @@ This test suite is designed to work with any CI system:
 ### Local UMD Generation Preview
 ```ruby
 # Coming soon in v0.3.0:
-UmdSync.install_package!('@tanstack/query', generate: true)
-UmdSync.install_package!('zustand', generate: true)
-UmdSync.install_package!('@emotion/react', generate: true)
+IslandJS Rails.install_package!('@tanstack/query', generate: true)
+IslandJS Rails.install_package!('zustand', generate: true)
+IslandJS Rails.install_package!('@emotion/react', generate: true)
 # Locally generates UMD builds for 30-40% of packages missing them
 # No external services, no infrastructure costs, just works!
 ```
@@ -723,4 +726,4 @@ UmdSync.install_package!('@emotion/react', generate: true)
 
 ---
 
-**Ready to revolutionize Rails 8 frontend development?** UmdSync makes modern JavaScript simple again.
+**Ready to revolutionize Rails 8 frontend development?** IslandJS Rails makes modern JavaScript simple again.
