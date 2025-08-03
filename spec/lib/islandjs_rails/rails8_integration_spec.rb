@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'islandjs_rails/rails_helpers'
 
 RSpec.describe 'Rails 8 Integration' do
   let(:temp_dir) { create_temp_dir }
@@ -19,7 +20,7 @@ RSpec.describe 'Rails 8 Integration' do
       
       # Test UMD partials creation
       IslandjsRails.init!
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
       
       expect(Dir.exist?(partials_dir)).to be true
     end
@@ -97,7 +98,7 @@ RSpec.describe 'Rails 8 Integration' do
   describe 'Rails 8 Deployment Compatibility' do
     it 'works with Rails 8 deployment patterns' do
       # Test that UMD files are properly structured for Rails 8 deployments
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
       
       IslandjsRails.core.create_partial_file('react', 'console.log("React");', 'React')
       

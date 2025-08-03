@@ -7,51 +7,97 @@ module IslandjsRails
 
     # Render all island partials (CDN scripts for external libraries)
     def island_partials
-      return '' unless Dir.exist?(IslandjsRails.configuration.partials_dir)
+      output = []
       
-      partials = Dir.glob(File.join(IslandjsRails.configuration.partials_dir, '*.html.erb'))
-      
-      if partials.empty?
-        return html_safe_string("<!-- No IslandJS partials found -->")
+      IslandjsRails.core.send(:installed_packages).each do |package_name|
+        if IslandjsRails.core.send(:supported_package?, package_name)
+          partial_name = "shared/islands/#{package_name.gsub(/[@\/]/, '_').gsub(/-/, '_')}"
+          
+          begin
+            output << render(partial: partial_name)
+          rescue ActionView::MissingTemplate
+            # Partial doesn't exist, skip silently or show warning in development
+            if Rails.env.development?
+              output << "<!-- IslandJS: Missing partial for #{package_name}. Run: rails islandjs:sync -->"
+            end
+          end
+        end
       end
       
-      rendered_partials = partials.map do |partial_path|
-        partial_name = File.basename(partial_path, '.html.erb')
-        render(partial: "shared/islands/#{partial_name}")
-      end.join("\n")
-      
-      html_safe_string(rendered_partials)
+      output.join("\n").html_safe
     end
 
     # Render the main IslandJS bundle script tag
     def island_bundle_script
-      bundle_path = find_bundle_path
+      manifest_path = Rails.root.join('public', 'islands_manifest.json')
+      bundle_path = '/islands_bundle.js'
       
-      unless bundle_path
-        return html_safe_string("<!-- IslandJS bundle not found. Run 'rails islandjs:build' -->")
+      unless File.exist?(manifest_path)
+        # Fallback to direct bundle path when no manifest
+        return html_safe_string("<script src=\"#{bundle_path}\" defer></script>")
       end
       
-      script_tag = "<script src=\"#{bundle_path}\" defer></script>"
-      html_safe_string(script_tag)
+      begin
+        manifest = JSON.parse(File.read(manifest_path))
+        # Look for islands_bundle.js in manifest
+        bundle_file = manifest['islands_bundle.js']
+        
+        if bundle_file
+          html_safe_string("<script src=\"#{bundle_file}\" defer></script>")
+        else
+          # Fallback to direct bundle path
+          html_safe_string("<script src=\"#{bundle_path}\" defer></script>")
+        end
+      rescue JSON::ParserError
+        # Fallback to direct bundle path on manifest parse error
+        html_safe_string("<script src=\"#{bundle_path}\" defer></script>")
+      end
     end
 
     # Mount a React component with props and Turbo-compatible lifecycle
     def react_component(component_name, props = {}, options = {})
-      # Generate unique ID for this component instance
-      component_id = "react-#{component_name.downcase}-#{SecureRandom.hex(4)}"
-      
-      # Prepare props as JSON
-      props_json = props.to_json
+      # Generate component ID - use custom container_id if provided
+      if options[:container_id]
+        component_id = options[:container_id]
+      else
+        component_id = "react-#{component_name.gsub(/([A-Z])/, '-\1').downcase.gsub(/^-/, '')}"
+      end
       
       # Extract options
       tag_name = options[:tag] || 'div'
       css_class = options[:class] || ''
+      namespace = options[:namespace] || 'window.islandjsRails'
+      
+      # Generate data attributes from props with proper HTML escaping
+      data_attrs = props.map do |key, value|
+        # Convert both camelCase and snake_case to kebab-case
+        attr_name = key.to_s.gsub(/([A-Z])/, '-\1').gsub('_', '-').downcase.gsub(/^-/, '')
+        # Properly escape HTML entities
+        attr_value = if value.nil?
+          ''
+        else
+          value.to_s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;').gsub('"', '&quot;')
+        end
+        "data-#{attr_name}=\"#{attr_value}\""
+      end.join(' ')
+      
+      # Prepare props as JSON
+      props_json = props.to_json
+      
+      # Generate optional chaining syntax for custom namespaces
+      namespace_with_optional = if namespace != 'window.islandjsRails' && !namespace.include?('?')
+        namespace + '?'
+      else
+        namespace
+      end
       
       # Generate the mounting script
-      mount_script = generate_react_mount_script(component_name, component_id, props_json)
+      mount_script = generate_react_mount_script(component_name, component_id, props_json, namespace, namespace_with_optional)
       
-      # Return the container div and script
-      container_html = "<#{tag_name} id=\"#{component_id}\" class=\"#{css_class}\"></#{tag_name}>"
+      # Return the container div with data attributes and script
+      data_part = data_attrs.empty? ? '' : " #{data_attrs}"
+      class_part = css_class.empty? ? '' : " class=\"#{css_class}\""
+      container_html = "<#{tag_name} id=\"#{component_id}\"#{class_part}#{data_part}></#{tag_name}>"
       
       html_safe_string("#{container_html}\n#{mount_script}")
     end
@@ -113,17 +159,71 @@ module IslandjsRails
       html_safe_string(debug_html)
     end
 
+    # Legacy UMD helper methods for backward compatibility with tests
+    def umd_versions_debug
+      return unless Rails.env.development?
+      
+      begin
+        installed = IslandjsRails.core.send(:installed_packages)
+        supported = installed.select { |pkg| IslandjsRails.core.send(:supported_package?, pkg) }
+        
+        if supported.empty?
+          return %(<div style="position: fixed; bottom: 10px; right: 10px; background: #666; color: #fff; padding: 5px; font-size: 10px; z-index: 9999;">UMD: No packages</div>).html_safe
+        end
+        
+        versions = supported.map do |package_name|
+          begin
+            version = IslandjsRails.version_for(package_name)
+            "#{package_name}: #{version}"
+          rescue
+            "#{package_name}: error"
+          end
+        end.join(', ')
+        
+        %(<div style="position: fixed; bottom: 10px; right: 10px; background: #000; color: #fff; padding: 5px; font-size: 10px; z-index: 9999;">UMD: #{versions}</div>).html_safe
+      rescue => e
+        %(<div style="position: fixed; bottom: 10px; right: 10px; background: #f00; color: #fff; padding: 5px; font-size: 10px; z-index: 9999;">UMD Error: #{e.message}</div>).html_safe
+      end
+    end
+
+    def umd_partial_for(package_name)
+      # Support for backward compatibility
+      unless IslandjsRails.core.send(:supported_package?, package_name)
+        return '' if Rails.env.production?
+        return "<!-- Missing partial for #{package_name}. Run: rails islandjs:sync -->".html_safe
+      end
+      
+      partial_name = "shared/islands/#{package_name.gsub(/[@\/]/, '_').gsub(/-/, '_')}"
+      
+      begin
+        render(partial: partial_name).html_safe
+      rescue ActionView::MissingTemplate
+        if Rails.env.development?
+          "<!-- Missing partial for #{package_name}. Run: rails islandjs:sync -->".html_safe
+        else
+          "".html_safe
+        end
+      end
+    end
+
+    def react_partials
+      packages = ['react', 'react-dom']
+      partials = packages.map { |pkg| umd_partial_for(pkg) }.compact.join("\n")
+      html_safe_string(partials)
+    end
+
     private
 
     # Find the bundle file path (with manifest support)
     def find_bundle_path
       # Try manifest first (production)
-      manifest_path = Rails.root.join('public', 'islandjsRailsManifest.json')
+      manifest_path = Rails.root.join('public', 'islands_manifest.json')
       
       if File.exist?(manifest_path)
         begin
           manifest = JSON.parse(File.read(manifest_path))
-          bundle_key = manifest.keys.find { |key| key.include?('islandjsRailsBundle') }
+          # Look for islands_bundle in manifest
+          bundle_key = manifest.keys.find { |key| key.include?('islands_bundle') }
           return "/#{manifest[bundle_key]}" if bundle_key && manifest[bundle_key]
         rescue JSON::ParserError
           # Fall through to direct file check
@@ -131,25 +231,27 @@ module IslandjsRails
       end
       
       # Try direct file (development)
-      direct_bundle_path = Rails.root.join('public', 'islandjsRailsBundle.js')
-      return '/islandjsRailsBundle.js' if File.exist?(direct_bundle_path)
+      direct_bundle_path = Rails.root.join('public', 'islands_bundle.js')
+      if File.exist?(direct_bundle_path)
+        return '/islands_bundle.js'
+      end
       
       # Bundle not found
       nil
     end
 
     # Generate React component mounting script with Turbo compatibility
-    def generate_react_mount_script(component_name, component_id, props_json)
+    def generate_react_mount_script(component_name, component_id, props_json, namespace, namespace_with_optional)
       <<~JAVASCRIPT
         <script>
           (function() {
             function mount#{component_name}() {
-              if (typeof window.islandjsRails === 'undefined' || !window.islandjsRails.#{component_name}) {
+              if (typeof #{namespace_with_optional} === 'undefined' || !#{namespace_with_optional}.#{component_name}) {
                 console.warn('IslandJS: #{component_name} component not found. Make sure it\\'s exported in your bundle.');
                 return;
               }
               
-              if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+              if (typeof React === 'undefined' || typeof window.ReactDOM === 'undefined') {
                 console.warn('IslandJS: React or ReactDOM not loaded. Install with: rails "islandjs:install[react]" and rails "islandjs:install[react-dom]"');
                 return;
               }
@@ -158,20 +260,20 @@ module IslandjsRails
               if (!container) return;
               
               const props = #{props_json};
-              const element = React.createElement(window.islandjsRails.#{component_name}, props);
+              const element = React.createElement(#{namespace_with_optional}.#{component_name}, props);
               
               // Use React 18 createRoot if available, fallback to React 17 render
-              if (ReactDOM.createRoot) {
+              if (window.ReactDOM.createRoot) {
                 if (!container._reactRoot) {
-                  container._reactRoot = ReactDOM.createRoot(container);
+                  container._reactRoot = window.ReactDOM.createRoot(container);
                 }
                 container._reactRoot.render(element);
               } else {
-                ReactDOM.render(element, container);
+                window.ReactDOM.render(element, container);
               }
             }
             
-            function unmount#{component_name}() {
+            function cleanup#{component_name}() {
               const container = document.getElementById('#{component_id}');
               if (!container) return;
               
@@ -179,9 +281,9 @@ module IslandjsRails
               if (container._reactRoot) {
                 container._reactRoot.unmount();
                 container._reactRoot = null;
-              } else if (typeof ReactDOM !== 'undefined' && ReactDOM.unmountComponentAtNode) {
+              } else if (typeof window.ReactDOM !== 'undefined' && window.ReactDOM.unmountComponentAtNode) {
                 // React 17 unmount
-                ReactDOM.unmountComponentAtNode(container);
+                window.ReactDOM.unmountComponentAtNode(container);
               }
             }
             
@@ -194,11 +296,13 @@ module IslandjsRails
             
             // Turbo compatibility
             document.addEventListener('turbo:load', mount#{component_name});
-            document.addEventListener('turbo:before-cache', unmount#{component_name});
+            document.addEventListener('turbo:before-cache', cleanup#{component_name});
+            document.addEventListener('turbo:render', mount#{component_name});
+            document.addEventListener('turbo:before-render', cleanup#{component_name});
             
             // Legacy Turbolinks compatibility
             document.addEventListener('turbolinks:load', mount#{component_name});
-            document.addEventListener('turbolinks:before-cache', unmount#{component_name});
+            document.addEventListener('turbolinks:before-cache', cleanup#{component_name});
           })();
         </script>
       JAVASCRIPT

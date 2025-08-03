@@ -14,6 +14,63 @@ module IslandjsRails
   class Error < StandardError; end
   class YarnError < Error; end
   class IslandNotFoundError < Error; end
+  class PackageNotFoundError < Error; end
+  class UmdNotFoundError < Error; end
+
+  # Constants for compatibility with tests
+  UMD_PATH_PATTERNS = [
+    'umd/{name}.production.min.js',
+    'umd/{name}.development.js',
+    'umd/{name}.min.js',
+    'umd/{name}.js', 
+    'dist/{name}.min.js',
+    'dist/{name}.js',
+    'dist/{name}.umd.min.js',
+    'dist/{name}.umd.js',
+    'lib/{name}.js',
+    'lib/{name}.min.js',
+    '{name}.min.js',
+    '{name}.js',
+    'build/{name}.min.js',
+    'build/{name}.js',
+    'bundles/{name}.min.js',
+    'bundles/{name}.js'
+  ].freeze
+
+  CDN_BASES = [
+    'https://unpkg.com',
+    'https://cdn.jsdelivr.net/npm'
+  ].freeze
+
+  BUILT_IN_GLOBAL_NAME_OVERRIDES = {
+    # React ecosystem
+    'react' => 'React',
+    'react-dom' => 'ReactDOM',
+    'react-router' => 'ReactRouter',
+    'react-router-dom' => 'ReactRouterDOM',
+    
+    # Utility libraries
+    'lodash' => '_',
+    'underscore' => '_',
+    'jquery' => '$',
+    'zepto' => '$',
+    'date-fns' => 'dateFns',
+    
+    # Frameworks
+    'vue' => 'Vue',
+    'angular' => 'ng',
+    
+    # Blockchain
+    '@solana/web3.js' => 'solanaWeb3',
+    'web3' => 'Web3',
+    
+    # Visualization
+    'chart.js' => 'Chart',
+    'plotly.js' => 'Plotly',
+    
+    # State management
+    'redux' => 'Redux'
+  }.freeze
 
   class << self
     # Configuration management

@@ -91,12 +91,12 @@ namespace :islandjs do
     
     if success
       puts "✅ IslandJS bundle built successfully!"
-      puts "📁 Bundle location: public/islandjsRailsBundle.js"
-      puts "📄 Manifest location: public/islandjsRailsManifest.json"
+                        puts "📁 Bundle location: public/islands_bundle.js"
+                        puts "📄 Manifest location: public/islands_manifest.json"
       puts ""
       puts "🚀 Ready for deployment!"
       puts "💡 Commit these assets to git for production deployment:"
-      puts "   git add public/islandjsRails*"
+                        puts "   git add public/islands_*"
       puts "   git commit -m 'Build IslandJS assets for production'"
     else
       puts "❌ Build failed!"
@@ -109,7 +109,7 @@ namespace :islandjs do
   desc "Show IslandJS configuration"
   task :config => :environment do
     config = IslandjsRails.configuration
-    puts "📊 IslandJS Rails Configuration"
+            puts "📊 IslandjsRails Configuration"
     puts "=" * 40
     puts "Package.json path: #{config.package_json_path}"
     puts "Partials directory: #{config.partials_dir}"
@@ -120,7 +120,7 @@ namespace :islandjs do
 
   desc "Show IslandJS version"
   task :version do
-    puts "IslandJS Rails #{IslandjsRails::VERSION}"
+    puts "IslandjsRails #{IslandjsRails::VERSION}"
   end
 end
 

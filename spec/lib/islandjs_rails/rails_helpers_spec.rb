@@ -12,9 +12,9 @@ RSpec.describe IslandjsRails::RailsHelpers do
       def render(options)
         if options[:partial]
           case options[:partial]
-          when 'shared/umd/react'
+          when 'shared/islands/react'
             '<script>React UMD content</script>'
-          when 'shared/umd/lodash'
+          when 'shared/islands/lodash'
             '<script>Lodash UMD content</script>'
           else
             raise ActionView::MissingTemplate.new([], options[:partial], [], true, "Missing template")
@@ -49,18 +49,24 @@ RSpec.describe IslandjsRails::RailsHelpers do
   describe '#island_partials' do
     before do
       # Create some partials
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
       FileUtils.mkdir_p(partials_dir)
       File.write(File.join(partials_dir, '_react.html.erb'), '<script>React</script>')
+      
+      # Mock the core methods
+      allow(IslandjsRails.core).to receive(:send).with(:installed_packages).and_return(['react', 'react-dom', 'lodash'])
+      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'react').and_return(true)
+      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'react-dom').and_return(true)
+      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'lodash').and_return(true)
       
       # Mock the render method more precisely
       allow(view_context).to receive(:render) do |options|
         case options[:partial]
-        when 'shared/umd/react'
+        when 'shared/islands/react'
           '<script>React UMD content</script>'
-        when 'shared/umd/react_dom'
+        when 'shared/islands/react_dom'
           raise ActionView::MissingTemplate.new([], options[:partial], [], true, "Missing template")
-        when 'shared/umd/lodash'
+        when 'shared/islands/lodash'
           raise ActionView::MissingTemplate.new([], options[:partial], [], true, "Missing template")
         else
           raise ActionView::MissingTemplate.new([], options[:partial], [], true, "Missing template")
@@ -79,16 +85,20 @@ RSpec.describe IslandjsRails::RailsHelpers do
       
       expect(result).to include('Missing partial for react-dom')
       expect(result).to include('Missing partial for lodash')
-      expect(result).to include('rails islandjs_rails:sync')
+      expect(result).to include('rails islandjs:sync')
     end
   end
 
   describe '#umd_partial_for' do
     before do
+      # Mock core methods
+      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'react').and_return(true)
+      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'vue').and_return(false)
+      
       # Mock render method for specific partial
       allow(view_context).to receive(:render) do |options|
         case options[:partial]
-        when 'shared/umd/react'
+        when 'shared/islands/react'
           '<script>React UMD content</script>'
         else
           raise ActionView::MissingTemplate.new([], options[:partial], [], true, "Missing template")
@@ -104,7 +114,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
     it 'returns warning comment for missing partials in development' do
       result = view_context.umd_partial_for('vue')
       expect(result).to include('Missing partial for vue')
-      expect(result).to include('rails islandjs_rails:sync')
+      expect(result).to include('rails islandjs:sync')
     end
 
     it 'returns empty string for unsupported packages in production' do
@@ -147,17 +157,20 @@ RSpec.describe IslandjsRails::RailsHelpers do
     end
 
     it 'handles file system errors in island_bundle_script' do
-      allow(File).to receive(:read).and_raise(Errno::ENOENT)
+      allow(File).to receive(:exist?).and_return(false)
       
       result = view_context.island_bundle_script
+      
       expect(result).to include('/islands_bundle.js')
     end
 
     it 'handles JSON parsing errors gracefully' do
-      allow(File).to receive(:exist?).and_return(true)
-      allow(File).to receive(:read).and_return('invalid json {')
+      manifest_path = File.join(temp_dir, 'public', 'islands_manifest.json')
+      FileUtils.mkdir_p(File.dirname(manifest_path))
+      File.write(manifest_path, 'invalid json{')
       
       result = view_context.island_bundle_script
+      
       expect(result).to include('/islands_bundle.js')
     end
   end
@@ -241,7 +254,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
       expect(result).to include('id="react-my-component"')
       expect(result).to include('data-user-id="123"')
       expect(result).to include('data-theme="dark"')
-      expect(result).to include('window.islandjs_rails.MyComponent')
+      expect(result).to include('window.islandjsRails.MyComponent')
       expect(result).to include('function mountMyComponent()')
       expect(result).to include('function cleanupMyComponent()')
     end
@@ -288,24 +301,24 @@ RSpec.describe IslandjsRails::RailsHelpers do
     end
     
     it 'uses webpack manifest when available' do
-      manifest = { 'islands_bundle.js' => '/islands_bundle.abc123.js' }
+      manifest = { 'islands_bundle.js' => '/islandjs_rails_bundle.abc123.js' }
       File.write(manifest_path, JSON.generate(manifest))
       
       result = view_context.island_bundle_script
       
-      expect(result).to include('/islands_bundle.abc123.js')
+      expect(result).to include('/islandjs_rails_bundle.abc123.js')
     end
     
     it 'uses islands_bundle.js from manifest' do
       manifest = { 
-        'islands_bundle.js' => '/islands_bundle.def456.js',
+        'islands_bundle.js' => '/islandjs_rails_bundle.def456.js',
         'other_bundle.js' => '/other_bundle.abc123.js' 
       }
       File.write(manifest_path, JSON.generate(manifest))
       
       result = view_context.island_bundle_script
       
-      expect(result).to include('/islands_bundle.def456.js')
+      expect(result).to include('/islandjs_rails_bundle.def456.js')
     end
     
     it 'falls back to islands_bundle.js when no manifest' do

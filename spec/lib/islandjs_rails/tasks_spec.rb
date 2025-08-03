@@ -3,8 +3,15 @@ require 'islandjs_rails/tasks'
 
 RSpec.describe "Islandjs Rake Tasks" do
   before(:all) do
-    # Load the tasks
+    # Create a mock environment task for testing
+    unless Rake::Task.task_defined?('environment')
+      Rake::Task.define_task('environment') { }
+    end
+    
+    # Load the tasks only if they haven't been loaded yet
+    unless Rake::Task.task_defined?('islandjs:init')
     load File.expand_path('../../../../lib/islandjs_rails/tasks.rb', __FILE__)
+    end
   end
 
   before(:each) do

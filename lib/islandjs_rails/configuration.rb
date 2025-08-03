@@ -5,9 +5,9 @@ module IslandjsRails
     attr_accessor :package_json_path, :partials_dir, :webpack_config_path, :supported_cdns, :global_name_overrides
 
     def initialize
-      @package_json_path = Pathname.new(Dir.pwd).join('package.json')
-      @partials_dir = Pathname.new(Dir.pwd).join('app', 'views', 'shared', 'islands')
-      @webpack_config_path = Pathname.new(Dir.pwd).join('webpack.config.js')
+      @package_json_path = Rails.root.join('package.json')
+      @partials_dir = Rails.root.join('app', 'views', 'shared', 'islands')
+      @webpack_config_path = Rails.root.join('webpack.config.js')
       @supported_cdns = [
         'https://unpkg.com',
         'https://cdn.jsdelivr.net/npm'

@@ -13,7 +13,7 @@ RSpec.describe IslandjsRails::Configuration do
       config = described_class.new
       
       expect(config.package_json_path).to eq(Pathname.new(temp_dir).join('package.json'))
-      expect(config.partials_dir).to eq(Pathname.new(temp_dir).join('app', 'views', 'shared', 'umd'))
+      expect(config.partials_dir).to eq(Pathname.new(temp_dir).join('app', 'views', 'shared', 'islands'))
       expect(config.webpack_config_path).to eq(Pathname.new(temp_dir).join('webpack.config.js'))
       expect(config.supported_cdns).to include('https://unpkg.com', 'https://cdn.jsdelivr.net/npm')
       expect(config.global_name_overrides).to include('react' => 'React')
@@ -103,7 +103,7 @@ RSpec.describe IslandjsRails::Configuration do
       config = IslandjsRails::Configuration.new
       
       expect(config.package_json_path.to_s).to start_with('/custom/rails/app')
-      expect(config.partials_dir.to_s).to include('/custom/rails/app/app/views/shared/umd')
+      expect(config.partials_dir.to_s).to include('/custom/rails/app/app/views/shared/islands')
     end
   end
 

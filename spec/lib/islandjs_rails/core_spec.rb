@@ -65,6 +65,14 @@ RSpec.describe IslandjsRails::Core do
   end
 
   describe '#find_working_umd_url', :vcr do
+    before do
+      # Mock successful URL for React
+      allow(core).to receive(:url_accessible?).and_return(false)
+      allow(core).to receive(:url_accessible?)
+        .with('https://unpkg.com/react@18.3.1/umd/react.min.js')
+        .and_return(true)
+    end
+    
     it 'finds working UMD URL for React', vcr: { cassette_name: 'react_umd_search' } do
       url, global_name = core.find_working_umd_url('react', '18.3.1')
       
@@ -74,6 +82,8 @@ RSpec.describe IslandjsRails::Core do
     end
 
     it 'returns nil for non-existent packages', vcr: { cassette_name: 'nonexistent_package' } do
+      allow(core).to receive(:url_accessible?).and_return(false)
+      
       url, global_name = core.find_working_umd_url('non-existent-package-xyz', '1.0.0')
       
       expect(url).to be_nil
@@ -101,7 +111,7 @@ RSpec.describe IslandjsRails::Core do
   end
 
   describe '#create_partial_file' do
-    let(:partials_dir) { File.join(temp_dir, 'app', 'views', 'shared', 'umd') }
+    let(:partials_dir) { File.join(temp_dir, 'app', 'views', 'shared', 'islands') }
     
     it 'creates partial file with UMD content' do
       umd_content = 'console.log("React UMD");'
@@ -141,7 +151,7 @@ RSpec.describe IslandjsRails::Core do
     before do
       create_temp_webpack_config(temp_dir)
       # Create some partials to simulate installed packages
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
       FileUtils.mkdir_p(partials_dir)
       File.write(File.join(partials_dir, '_react.html.erb'), '<script>React</script>')
       File.write(File.join(partials_dir, '_lodash.html.erb'), '<script>lodash</script>')
@@ -167,7 +177,7 @@ RSpec.describe IslandjsRails::Core do
 
   describe '#init!' do
     it 'creates necessary directories' do
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
       expect(Dir.exist?(partials_dir)).to be false
       
       expect { core.init! }.to output(/Initializing IslandjsRails/).to_stdout
@@ -199,7 +209,7 @@ RSpec.describe IslandjsRails::Core do
   describe '#status!' do
     before do
       # Create some partials
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
       FileUtils.mkdir_p(partials_dir)
       File.write(File.join(partials_dir, '_react.html.erb'), '<script>React</script>')
     end
@@ -212,7 +222,7 @@ RSpec.describe IslandjsRails::Core do
   end
 
   describe '#clean!' do
-    let(:partials_dir) { File.join(temp_dir, 'app', 'views', 'shared', 'umd') }
+    let(:partials_dir) { File.join(temp_dir, 'app', 'views', 'shared', 'islands') }
     
     before do
       FileUtils.mkdir_p(partials_dir)
@@ -245,7 +255,7 @@ RSpec.describe IslandjsRails::Core do
   describe '#remove!' do
     before do
       create_temp_package_json(temp_dir, {'react' => '^18.3.1'})
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
       FileUtils.mkdir_p(partials_dir)
       File.write(File.join(partials_dir, '_react.html.erb'), '<script>React</script>')
     end
@@ -270,7 +280,7 @@ RSpec.describe IslandjsRails::Core do
     end
 
     it 'removes partial file and updates webpack externals' do
-      partial_path = File.join(temp_dir, 'app', 'views', 'shared', 'umd', '_react.html.erb')
+      partial_path = File.join(temp_dir, 'app', 'views', 'shared', 'islands', '_react.html.erb')
       expect(File.exist?(partial_path)).to be true
       
       allow(Open3).to receive(:capture3).and_return(['', '', double(success?: true)])
@@ -297,7 +307,7 @@ RSpec.describe IslandjsRails::Core do
       expect { core.sync! }.to output(/Syncing all UMD packages/).to_stdout
       
       # Verify that partials were created (indirect verification)
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
       expect(Dir.glob(File.join(partials_dir, '*.erb')).size).to be > 0
     end
 
@@ -411,7 +421,7 @@ RSpec.describe IslandjsRails::Core do
 
     describe '#has_partial?' do
       it 'returns true when partial exists' do
-        partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'umd')
+        partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
         FileUtils.mkdir_p(partials_dir)
         File.write(File.join(partials_dir, '_react.html.erb'), '<script>')
         
@@ -653,13 +663,18 @@ RSpec.describe IslandjsRails::Core do
       it 'uncomments React imports in template file' do
         # Create the exact template format expected by the method
         File.write(index_js_path, <<~JS)
-          // IslandjsRails Entry Point
-          // Import your JavaScript modules here
-          // import HelloWorld from './components/HelloWorld';
+          // IslandJS Rails - Main entry point
+          // This file is the webpack entry point for your JavaScript islands
 
-          export default {
-           // HelloWorld
+          // Example React component imports (uncomment when you have components)
+          // import HelloWorld from './components/HelloWorld.jsx';
+
+          // Mount components to the global islandjsRails namespace
+          window.islandjsRails = {
+            // HelloWorld
           };
+
+          console.log('🏝️ IslandJS Rails loaded successfully!');
         JS
         
         Dir.chdir(temp_dir) do
@@ -865,7 +880,7 @@ RSpec.describe IslandjsRails::Core do
     end
 
     describe '#create_scaffolded_structure!' do
-      let(:islandjs_dir) { File.join(temp_dir, 'app', 'javascript', 'islandjs') }
+      let(:islandjs_dir) { File.join(temp_dir, 'app', 'javascript', 'islandjs_rails') }
       let(:components_dir) { File.join(islandjs_dir, 'components') }
       
       it 'creates directory structure and files' do
@@ -990,7 +1005,7 @@ RSpec.describe IslandjsRails::Core do
       
       it 'returns true when route exists' do
         FileUtils.mkdir_p(File.dirname(routes_file))
-        File.write(routes_file, "get 'umd-sync/react'")
+        File.write(routes_file, "get 'islandjs/react'")
         allow(Dir).to receive(:pwd).and_return(temp_dir)
         
         expect(core.send(:demo_route_exists?)).to be true
@@ -1032,7 +1047,7 @@ RSpec.describe IslandjsRails::Core do
         
         expect(File.exist?(controller_path)).to be true
         content = File.read(controller_path)
-        expect(content).to include('IslandjsRailsDemoController')
+        expect(content).to include('IslandjsDemoController')
         expect(content).to include('def react')
       end
     end
@@ -1066,7 +1081,7 @@ RSpec.describe IslandjsRails::Core do
         expect { core.send(:add_demo_route!) }.to output(/Added route/).to_stdout
         
         content = File.read(routes_file)
-        expect(content).to include("get 'umd-sync/react'")
+        expect(content).to include("get 'islandjs/react'")
         expect(content).to include('islandjs_demo#react')
       end
 

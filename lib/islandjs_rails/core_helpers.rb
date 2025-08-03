@@ -11,15 +11,15 @@ module IslandjsRails
       # Get all installed packages and their global names
       externals = {}
       installed_packages.each do |pkg|
-        next unless supported_package?(pkg)
+        next unless has_partial?(pkg)
         externals[pkg] = get_global_name_for_package(pkg)
       end
       
       # Generate externals block
-      externals_lines = externals.map { |pkg, global| "    '#{pkg}': '#{global}'" }
+      externals_lines = externals.map { |pkg, global| "    \"#{pkg}\": \"#{global}\"" }
       externals_block = <<~JS
       externals: {
-        // IslandJS managed externals - do not edit manually
+        // IslandjsRails managed externals - do not edit manually
       #{externals_lines.join(",\n")}
       },
       JS

@@ -26,16 +26,25 @@ module IslandjsRails
 
     # Initialize IslandJS in a Rails project
     def init!
-      puts "🏝️ Initializing IslandJS Rails..."
+      puts "🚀 Initializing IslandjsRails..."
       
+      # Step 1: Check for required tools
       check_node_tools!
+      
+      # Step 2: Ensure package.json exists
       ensure_package_json!
+      
+      # Step 3: Install essential webpack dependencies
       install_essential_dependencies!
+      
+      # Step 4: Create scaffolded structure
       create_scaffolded_structure!
       
+      # Step 5: Create directories
       FileUtils.mkdir_p(configuration.partials_dir)
       puts "✓ Created #{configuration.partials_dir}"
       
+      # Step 6: Generate webpack config if it doesn't exist
       unless File.exist?(configuration.webpack_config_path)
         generate_webpack_config!
         puts "✓ Generated webpack.config.js"
@@ -43,28 +52,37 @@ module IslandjsRails
         puts "✓ webpack.config.js already exists"
       end
       
-      inject_island_partials_into_layout!
+      # Step 7: Auto-inject islands helper into layout
+      inject_umd_partials_into_layout!
+      
+      # Step 8: Add node_modules to .gitignore
       ensure_node_modules_gitignored!
       
-      puts "\n🎉 IslandJS Rails initialized successfully!"
+      puts "\n🎉 IslandjsRails initialized successfully!"
       puts "\n📋 Next steps:"
       puts "1. Install libraries:  rails \"islandjs:install[react,18.3.1]\""
       puts "                       rails \"islandjs:install[react-dom,18.3.1]\"  "
       puts "2. Start dev:          yarn watch"
       puts "3. Use components:     <%= react_component('HelloWorld') %>"
       puts "4. Build for prod:     rails islandjs:build"
-      puts "5. Commit assets:      git add public/islandjsRails*"
+      puts "5. Commit assets:      git add public/islands_*"
   
       puts "\n🚀 Rails 8 Ready: Commit your built assets for bulletproof deploys!"
-      puts "💡 IslandJS is framework-agnostic - use React, Vue, or any JavaScript library!"
+      puts "💡 IslandjsRails is framework-agnostic - use React, Vue, or any UMD library!"
       puts "🎉 Ready to build!"
     end
 
     # Install a new island package
     def install!(package_name, version = nil)
-      puts "📦 Installing island package: #{package_name}"
+      puts "📦 Installing UMD package: #{package_name}"
       
-      add_package_via_yarn(package_name, version)
+      # Check if React ecosystem was incomplete before this install
+      was_react_ecosystem_incomplete = !react_ecosystem_complete?
+      
+      # Add to package.json via yarn if not present
+      add_package_via_yarn(package_name, version) unless package_installed?(package_name)
+      
+      # Install the UMD
       install_package!(package_name, version)
       
       global_name = detect_global_name(package_name)
@@ -72,22 +90,26 @@ module IslandjsRails
       
       puts "✅ Successfully installed #{package_name}!"
       
-      if react_ecosystem_complete?
+      # Auto-scaffold React if ecosystem just became complete
+      if was_react_ecosystem_incomplete && react_ecosystem_complete? && 
+         (package_name == 'react' || package_name == 'react-dom')
         activate_react_scaffolding!
       end
     end
 
     # Update an existing package
     def update!(package_name, version = nil)
-      puts "🔄 Updating island package: #{package_name}"
+      puts "🔄 Updating UMD package: #{package_name}"
       
       unless package_installed?(package_name)
-        puts "❌ Package #{package_name} is not installed"
-        exit 1
+        raise IslandjsRails::PackageNotFoundError, "#{package_name} is not installed. Use 'install' instead."
       end
       
+      # Update package.json via yarn
       yarn_update!(package_name, version)
-      install_package!(package_name, version)
+      
+      # Re-install UMD
+      install_package!(package_name)
       
       puts "✅ Successfully updated #{package_name}!"
     end
@@ -97,8 +119,7 @@ module IslandjsRails
       puts "🗑️  Removing island package: #{package_name}"
       
       unless package_installed?(package_name)
-        puts "❌ Package #{package_name} is not installed"
-        exit 1
+        raise IslandjsRails::PackageNotFoundError, "Package #{package_name} is not installed"
       end
       
       remove_package_via_yarn(package_name)
@@ -115,7 +136,7 @@ module IslandjsRails
 
     # Sync all packages
     def sync!
-      puts "🔄 Syncing all island packages..."
+      puts "🔄 Syncing all UMD packages..."
       
       packages = installed_packages
       if packages.empty?
@@ -134,7 +155,7 @@ module IslandjsRails
 
     # Show status of all packages
     def status!
-      puts "📊 IslandJS Package Status"
+              puts "📊 IslandjsRails Status"
       puts "=" * 40
       
       packages = installed_packages
@@ -153,12 +174,16 @@ module IslandjsRails
 
     # Clean all partials
     def clean!
-      puts "🧹 Cleaning island partials..."
+      puts "🧹 Cleaning UMD partials..."
       
       if Dir.exist?(configuration.partials_dir)
         Dir.glob(File.join(configuration.partials_dir, '*.html.erb')).each do |file|
           File.delete(file)
           puts "  ✓ Removed #{File.basename(file)}"
+        end
+        # Remove directory if it's now empty
+        if Dir.empty?(configuration.partials_dir)
+          Dir.rmdir(configuration.partials_dir)
         end
       end
       
@@ -182,14 +207,15 @@ module IslandjsRails
     end
 
     def detect_global_name(package_name, url = nil)
+      # Check configured overrides first
       override = configuration.global_name_overrides[package_name]
       return override if override
       
-      if package_name.start_with?('@')
-        package_name.gsub(/[@\/\-\.]/, '').split(/(?=[A-Z])/).map(&:capitalize).join.gsub(/^./, &:downcase)
-      else
-        package_name.split('-').map.with_index { |part, i| i == 0 ? part : part.capitalize }.join
-      end
+      # For scoped packages, use the package name part
+      clean_name = package_name.include?('/') ? package_name.split('/').last : package_name
+      
+      # Convert kebab-case to camelCase
+      clean_name.split('-').map.with_index { |part, i| i == 0 ? part : part.capitalize }.join
     end
 
     def version_for(library_name)
@@ -229,7 +255,70 @@ module IslandjsRails
       nil
     end
 
+    def download_umd_content(url)
+      require 'net/http'
+      require 'uri'
+      
+      uri = URI(url)
+      response = Net::HTTP.get_response(uri)
+      
+      unless response.code == '200'
+        raise IslandjsRails::Error, "Failed to download UMD from #{url}: #{response.code}"
+      end
+      
+      response.body
+    end
+
+    def find_working_umd_url(package_name, version)
+      puts "  🔍 Searching for UMD build..."
+      
+      # Get package name without scope for path patterns
+      clean_name = package_name.split('/').last
+      
+      IslandjsRails::CDN_BASES.each do |cdn_base|
+        IslandjsRails::UMD_PATH_PATTERNS.each do |pattern|
+          # Replace placeholders in pattern
+          path = pattern.gsub('{name}', clean_name)
+          url = "#{cdn_base}/#{package_name}@#{version}/#{path}"
+          
+          if url_accessible?(url)
+            puts "  ✓ Found UMD: #{url}"
+            
+            # Try to detect global name from the UMD content
+            global_name = detect_global_name(package_name, url)
+            
+            return [url, global_name]
+          end
+        end
+      end
+      
+      puts "  ❌ No UMD build found for #{package_name}@#{version}"
+      [nil, nil]
+    end
+
     private
+
+    # Check if a URL is accessible (returns 200 status)
+    def url_accessible?(url)
+      require 'net/http'
+      require 'uri'
+      
+      uri = URI(url)
+      response = Net::HTTP.get_response(uri)
+      response.code == '200'
+    rescue => e
+      false
+    end
+    
+    # Check if a package has a partial file
+    def has_partial?(package_name)
+      File.exist?(partial_path_for(package_name))
+    end
+    
+    # Get global name for a package (used by webpack externals)
+    def get_global_name_for_package(package_name)
+      detect_global_name(package_name)
+    end
 
     def react_ecosystem_complete?
       package_installed?('react') && package_installed?('react-dom')
@@ -245,53 +334,71 @@ module IslandjsRails
     end
 
     def uncomment_react_imports!
-      index_js_path = File.join(Dir.pwd, 'app', 'javascript', 'islandjs', 'index.js')
+      index_js_path = File.join(Dir.pwd, 'app', 'javascript', 'islandjs_rails', 'index.js')
       return unless File.exist?(index_js_path)
       
       content = File.read(index_js_path)
       
-      if content.include?('// import HelloWorld') && content.include?('// window.islandjsRails')
-        updated_content = content.gsub(/^\/\/ (import HelloWorld.*|window\.islandjsRails.*)/, '\1')
+      # Check if this looks like our commented template
+      if content.include?('// import HelloWorld from') && content.include?('// HelloWorld')
+        # Uncomment the import
+        updated_content = content.gsub('// import HelloWorld from', 'import HelloWorld from')
+        # Uncomment the export within the window.islandjsRails object
+        updated_content = updated_content.gsub(/(\s+)\/\/ HelloWorld/, '\1HelloWorld')
+        
         File.write(index_js_path, updated_content)
-        puts "✓ Uncommented React imports in app/javascript/islandjs/index.js"
+        puts "✓ Activated React imports in index.js"
       else
         puts "⚠️  index.js has been modified - please add HelloWorld manually"
       end
     end
 
     def create_hello_world_component!
-      components_dir = File.join(Dir.pwd, 'components')
+      components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islandjs_rails', 'components')
       FileUtils.mkdir_p(components_dir)
       
       hello_world_path = File.join(components_dir, 'HelloWorld.jsx')
       
       if File.exist?(hello_world_path)
-        puts "✓ HelloWorld component already exists"
+        puts "✓ HelloWorld.jsx already exists"
         return
       end
       
       hello_world_content = <<~JSX
-        import React from 'react';
+        import React, { useState } from 'react';
         
-        const HelloWorld = ({ name = 'World' }) => {
+        const HelloWorld = ({ message = "Hello from IslandjsRails!" }) => {
+          const [count, setCount] = useState(0);
+          
           return (
             <div style={{
               padding: '20px',
-              border: '2px solid #4CAF50',
+              border: '2px solid #4F46E5',
               borderRadius: '8px',
-              backgroundColor: '#f9f9f9',
+              backgroundColor: '#F8FAFC',
               textAlign: 'center',
-              margin: '20px 0'
+              fontFamily: 'system-ui, sans-serif'
             }}>
-              <h2 style={{ color: '#4CAF50', margin: '0 0 10px 0' }}>
-                🏝️ IslandJS Rails
+              <h2 style={{ color: '#4F46E5', margin: '0 0 16px 0' }}>
+                🏝️ React + IslandjsRails
               </h2>
-              <p style={{ margin: '0', fontSize: '18px' }}>
-                Hello, {name}! Your React island is working perfectly.
+              <p style={{ margin: '0 0 16px 0', fontSize: '18px' }}>
+                {message}
               </p>
-              <p style={{ margin: '10px 0 0 0', fontSize: '14px', color: '#666' }}>
-                Edit this component in <code>components/HelloWorld.jsx</code>
-              </p>
+              <button
+                onClick={() => setCount(count + 1)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#4F46E5',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                Clicked {count} times
+              </button>
             </div>
           );
         };
@@ -300,7 +407,7 @@ module IslandjsRails
       JSX
       
       File.write(hello_world_path, hello_world_content)
-      puts "✓ Created HelloWorld component at components/HelloWorld.jsx"
+      puts "✓ Created HelloWorld.jsx component"
     end
   end
 end

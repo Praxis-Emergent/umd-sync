@@ -40,7 +40,7 @@ module IslandjsRails
     desc "config", "Show IslandJS configuration"
     def config
       config = IslandjsRails.configuration
-      puts "📊 IslandJS Rails Configuration"
+      puts "📊 IslandjsRails Configuration"
       puts "=" * 40
       puts "Package.json path: #{config.package_json_path}"
       puts "Partials directory: #{config.partials_dir}"
@@ -51,7 +51,7 @@ module IslandjsRails
 
     desc "version", "Show IslandJS Rails version"
     def version
-      puts "IslandJS Rails #{IslandjsRails::VERSION}"
+      puts "IslandjsRails #{IslandjsRails::VERSION}"
     end
   end
 end
