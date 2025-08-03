@@ -74,9 +74,9 @@ namespace :umd_sync do
     puts "Global name overrides: #{config.global_name_overrides.size} configured"
   end
 
-  desc 'Build UmdSync webpack bundle for production'
+  desc 'Build UmdSync webpack bundle for production (commit the output!)'
   task :build do
-    puts "🔨 Building UmdSync webpack bundle..."
+    puts "🔨 Building UmdSync webpack bundle for production..."
     
     unless File.exist?('package.json')
       puts "❌ No package.json found. Run: rails umd_sync:init"
@@ -88,10 +88,25 @@ namespace :umd_sync do
       exit 1
     end
     
-    # Check for yarn or npm
+    # Ensure webpack-cli is available
     if system('which yarn > /dev/null 2>&1')
+      # Check if webpack-cli is installed
+      unless system('yarn list webpack-cli > /dev/null 2>&1')
+        puts "⚠️  webpack-cli not found, installing..."
+        system('yarn add --dev webpack-cli@^5.1.4')
+      end
+      
+      # Run build with full output for debugging
+      puts "📦 Running: NODE_ENV=production yarn build"
       success = system('NODE_ENV=production yarn build')
     elsif system('which npm > /dev/null 2>&1')
+      # Check if webpack-cli is installed
+      unless system('npm list webpack-cli > /dev/null 2>&1')
+        puts "⚠️  webpack-cli not found, installing..."
+        system('npm install --save-dev webpack-cli@^5.1.4')
+      end
+      
+      puts "📦 Running: NODE_ENV=production npm run build"
       success = system('NODE_ENV=production npm run build')
     else
       puts "❌ Neither yarn nor npm found. Please install Node.js and yarn/npm."
@@ -100,7 +115,12 @@ namespace :umd_sync do
     
     if success
       puts "✅ UmdSync bundle built successfully!"
-      puts "📦 Assets ready for deployment in /public/"
+      puts "📦 Assets created in /public/:"
+      puts "   • umd_sync_bundle.js"
+      puts "   • umd_sync_manifest.json"
+      puts ""
+      puts "🚀 Next step: git add public/umd_sync_* && git commit"
+      puts "💡 Commit these assets for bulletproof production deploys!"
     else
       puts "❌ Build failed. Check your webpack configuration."
       exit 1

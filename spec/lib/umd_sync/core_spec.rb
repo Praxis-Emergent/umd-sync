@@ -720,6 +720,7 @@ RSpec.describe UmdSync::Core do
     describe '#build_bundle!' do
       it 'runs yarn build when yarn is available' do
         allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
+        allow(core).to receive(:system).with('yarn list webpack-cli > /dev/null 2>&1').and_return(true)
         allow(core).to receive(:system).with('yarn build > /dev/null 2>&1').and_return(true)
         
         expect { core.send(:build_bundle!) }.to output(/Bundle built successfully/).to_stdout
@@ -733,9 +734,19 @@ RSpec.describe UmdSync::Core do
 
       it 'warns when build fails' do
         allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
+        allow(core).to receive(:system).with('yarn list webpack-cli > /dev/null 2>&1').and_return(true)
         allow(core).to receive(:system).with('yarn build > /dev/null 2>&1').and_return(false)
         
         expect { core.send(:build_bundle!) }.to output(/Build failed/).to_stdout
+      end
+
+      it 'installs webpack-cli when missing' do
+        allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
+        allow(core).to receive(:system).with('yarn list webpack-cli > /dev/null 2>&1').and_return(false)
+        allow(core).to receive(:system).with('yarn add --dev webpack-cli@^5.1.4').and_return(true)
+        allow(core).to receive(:system).with('yarn build > /dev/null 2>&1').and_return(true)
+        
+        expect { core.send(:build_bundle!) }.to output(/webpack-cli not found, installing/).to_stdout
       end
     end
 

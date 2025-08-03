@@ -57,10 +57,13 @@ module UmdSync
       puts "\n✅ UmdSync initialized successfully!"
       puts "\n📋 Next steps:"
       puts "1. Install libraries:  rails \"umd_sync:install[react,18.3.1]\""
-      puts "                       rails \"umd_sync:install[react-dom,18.3.1]\""  
+      puts "                       rails \"umd_sync:install[react-dom,18.3.1]\"  "
       puts "2. Start dev:          yarn watch"
       puts "3. Use components:     <%= react_component('HelloWorld') %>"
-      puts "\n🚀 Rails 8 Ready: Assets output to /public/ for seamless deployment!"
+      puts "4. Build for prod:     rails umd_sync:build"
+      puts "5. Commit assets:      git add public/umd_sync_*"
+  
+      puts "\n🚀 Rails 8 Ready: Commit your built assets for bulletproof deploys!"
       puts "💡 UmdSync is framework-agnostic - use React, Vue, or any UMD library!"
       puts "🎉 Ready to build!"
     end
@@ -175,20 +178,32 @@ module UmdSync
 
     # Build the webpack bundle
     def build_bundle!
-      puts "📦 Building webpack bundle..."
+      puts "🔨 Building UmdSync webpack bundle..."
       
       unless system('which yarn > /dev/null 2>&1')
-        puts "⚠️  yarn not found, skipping build"
-        return
+        puts "❌ yarn not found, cannot build bundle"
+        return false
       end
       
-      # Run yarn build
-      success = system('yarn build > /dev/null 2>&1')
+      # Check if webpack-cli is available
+      unless system('yarn list webpack-cli > /dev/null 2>&1')
+        puts "⚠️  webpack-cli not found, installing..."
+        system('yarn add --dev webpack-cli@^5.1.4')
+      end
+      
+      # Run yarn build with full output in production for debugging
+      if ENV['NODE_ENV'] == 'production' || ENV['RAILS_ENV'] == 'production'
+        success = system('yarn build')
+      else
+        success = system('yarn build > /dev/null 2>&1')
+      end
       
       if success
-        puts "✓ Bundle built successfully"
+        puts "✅ Bundle built successfully"
+        return true
       else
-        puts "⚠️  Build failed - you may need to run 'yarn build' manually"
+        puts "❌ Build failed. Check your webpack configuration."
+        return false
       end
     end
 
