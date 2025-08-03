@@ -29,6 +29,17 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  # Post-install message
+  spec.post_install_message = <<~MSG
+    
+    🚀 UmdSync installed successfully!
+    
+    📋 Next step: Initialize UmdSync in your Rails app
+    
+        bundle exec rails umd_sync:init
+    
+  MSG
+
   # Rails integration
   spec.add_dependency "rails", ">= 7.0"
   spec.add_dependency "thor", "~> 1.0"

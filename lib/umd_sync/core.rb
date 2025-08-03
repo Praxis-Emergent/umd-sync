@@ -54,7 +54,7 @@ module UmdSync
       # Step 8: Add node_modules to .gitignore
       ensure_node_modules_gitignored!
       
-      puts "\n✅ UmdSync initialized successfully!"
+      puts "\n🎉 UmdSync initialized successfully!"
       puts "\n📋 Next steps:"
       puts "1. Install libraries:  rails \"umd_sync:install[react,18.3.1]\""
       puts "                       rails \"umd_sync:install[react-dom,18.3.1]\"  "
@@ -364,12 +364,8 @@ module UmdSync
       
       # Find the closing </head> tag and inject before it with proper indentation
       if match = content.match(/^(\s*)<\/head>/i)
-        indent = match[1] # Capture the indentation
-        umd_injection = <<~ERB.chomp
-          
-          #{indent}<!-- UmdSync: Auto-injected -->
-          #{indent}<%= umd_sync %>
-        ERB
+        indent = match[1] # Capture the existing indentation
+        umd_injection = "#{indent}<!-- UmdSync: Auto-injected -->\n#{indent}<%= umd_sync %>"
         
         # Inject before </head> with proper indentation
         updated_content = content.gsub(/^(\s*)<\/head>/i, "#{umd_injection}\n\\1</head>")
@@ -1000,12 +996,12 @@ module UmdSync
       content = File.read(routes_file)
       
       # Find a good place to insert the route (before the final 'end')
-      if content.match(/^(\s*)end\s*$/)
-        indent = $1
-        route_line = "#{indent}# UmdSync demo route (you can remove this)\n#{indent}get 'umd-sync/react', to: 'umd_sync_demo#react'\n\n"
+      if match = content.match(/^(\s*)end\s*$/)
+        indent = match[1] # Capture the existing indentation
+        route_lines = "#{indent}# UmdSync demo route (you can remove this)\n#{indent}get 'umd-sync/react', to: 'umd_sync_demo#react'\n"
         
-        # Insert before the last 'end'
-        updated_content = content.sub(/^(\s*)end\s*$/, "#{route_line}\\1end")
+        # Insert before the last 'end' with proper indentation
+        updated_content = content.sub(/^(\s*)end\s*$/, "#{route_lines}\n\\1end")
         File.write(routes_file, updated_content)
         puts "  ✓ Added route to config/routes.rb"
       else
