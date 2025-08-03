@@ -64,17 +64,17 @@ module UmdSync
     # Mount a React component with Turbo-compatible lifecycle
     # Usage: <%= react_component('DashboardApp', { userId: current_user.id }, container_id: 'dashboard-app') %>
     def react_component(component_name, props = {}, options = {})
-      container_id = options[:container_id] || "react-#{component_name.underscore.dasherize}"
+      container_id = options[:container_id] || "react-#{underscore_and_dasherize(component_name)}"
       namespace = options[:namespace] || 'window.umd_sync'
       
       # Convert props to data attributes (camelCase -> kebab-case)
       data_attrs = props.map do |key, value|
-        attr_name = key.to_s.underscore.dasherize
+        attr_name = underscore_and_dasherize(key.to_s)
         "data-#{attr_name}=\"#{html_escape(value)}\""
       end.join(' ')
       
       # Generate the container and mounting script
-      <<~HTML.html_safe
+      make_html_safe(<<~HTML)
         <div id="#{container_id}" #{data_attrs}></div>
         
         <script>
@@ -94,7 +94,7 @@ module UmdSync
 
             function mount#{component_name}() {
               const container = document.getElementById('#{container_id}');
-              if (!container || !window.React || !window.ReactDOM || !#{namespace}?.default?.#{component_name} || container.dataset.mounted) {
+              if (!container || !window.React || !window.ReactDOM || !#{namespace}?.#{component_name} || container.dataset.mounted) {
                 return;
               }
 
@@ -105,11 +105,11 @@ module UmdSync
               // Render component
               if (window.ReactDOM.createRoot) {
                 const root = window.ReactDOM.createRoot(container);
-                root.render(window.React.createElement(#{namespace}.default.#{component_name}, props));
+                root.render(window.React.createElement(#{namespace}.#{component_name}, props));
                 container._reactRoot = root;
               } else {
                 window.ReactDOM.render(
-                  window.React.createElement(#{namespace}.default.#{component_name}, props),
+                  window.React.createElement(#{namespace}.#{component_name}, props),
                   container
                 );
               }
@@ -229,9 +229,43 @@ module UmdSync
       return "" if props.empty?
       
       props.keys.map do |key|
-        data_attr = key.to_s.camelize(:lower)
+        data_attr = camelize_lower(key.to_s)
         "if (container.dataset.#{data_attr}) props.#{key} = container.dataset.#{data_attr};"
       end.join("\n              ")
+    end
+
+    def underscore_and_dasherize(str)
+      # Fallback implementation when Rails methods aren't available
+      if str.respond_to?(:underscore) && str.respond_to?(:dasherize)
+        str.underscore.dasherize
+      else
+        # Manual implementation
+        str.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+           .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+           .downcase
+           .gsub('_', '-')
+      end
+    end
+
+    def camelize_lower(str)
+      # Fallback implementation when Rails camelize isn't available
+      if str.respond_to?(:camelize)
+        str.camelize(:lower)
+      else
+        # Manual implementation for camelCase
+        str.split(/[-_]/).map.with_index do |word, index|
+          index == 0 ? word.downcase : word.capitalize
+        end.join
+      end
+    end
+
+    def make_html_safe(str)
+      # Fallback implementation when Rails html_safe isn't available
+      if str.respond_to?(:html_safe)
+        str.html_safe
+      else
+        str
+      end
     end
   end
 end

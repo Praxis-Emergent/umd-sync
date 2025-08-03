@@ -661,7 +661,9 @@ RSpec.describe UmdSync::Core do
           };
         JS
         
-        expect { core.send(:uncomment_react_imports!) }.to output(/Activated React imports/).to_stdout
+        Dir.chdir(temp_dir) do
+          expect { core.send(:uncomment_react_imports!) }.to output(/✓ Activated React imports/).to_stdout
+        end
         
         content = File.read(index_js_path)
         expect(content).to include('import HelloWorld from')
@@ -690,10 +692,13 @@ RSpec.describe UmdSync::Core do
       end
 
       it 'creates HelloWorld component' do
-        # Ensure directory exists
+        # Ensure directory exists and file doesn't exist
         FileUtils.mkdir_p(components_dir)
+        File.delete(hello_world_path) if File.exist?(hello_world_path)
         
-        expect { core.send(:create_hello_world_component!) }.to output(/Created HelloWorld.jsx/).to_stdout
+        Dir.chdir(temp_dir) do
+          expect { core.send(:create_hello_world_component!) }.to output(/✓ Created HelloWorld.jsx component/).to_stdout
+        end
         
         expect(File.exist?(hello_world_path)).to be true
         content = File.read(hello_world_path)
@@ -773,9 +778,10 @@ RSpec.describe UmdSync::Core do
 
       it 'exits when npm is missing' do
         allow(core).to receive(:system).with('which npm > /dev/null 2>&1').and_return(false)
+        allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
         allow(core).to receive(:exit).with(1)
         
-        expect { core.send(:check_node_tools!) }.to output(/npm not found/).to_stdout
+        expect { core.send(:check_node_tools!) }.to output(/❌ npm not found/).to_stdout
         expect(core).to have_received(:exit).with(1)
       end
 
@@ -795,7 +801,9 @@ RSpec.describe UmdSync::Core do
       it 'creates package.json when missing' do
         File.delete(package_json_path) if File.exist?(package_json_path)
         
-        expect { core.send(:ensure_package_json!) }.to output(/Creating package.json/).to_stdout
+        Dir.chdir(temp_dir) do
+          expect { core.send(:ensure_package_json!) }.to output(/📝 Creating package.json/).to_stdout
+        end
         
         expect(File.exist?(package_json_path)).to be true
         content = JSON.parse(File.read(package_json_path))
@@ -853,7 +861,9 @@ RSpec.describe UmdSync::Core do
         # Ensure the directory doesn't exist first
         FileUtils.rm_rf(umd_sync_dir) if Dir.exist?(umd_sync_dir)
         
-        expect { core.send(:create_scaffolded_structure!) }.to output(/Creating scaffolded structure/).to_stdout
+        Dir.chdir(temp_dir) do
+          expect { core.send(:create_scaffolded_structure!) }.to output(/🏗️  Creating scaffolded structure/).to_stdout
+        end
         
         expect(Dir.exist?(components_dir)).to be true
         expect(File.exist?(File.join(umd_sync_dir, 'index.js'))).to be true
@@ -925,7 +935,9 @@ RSpec.describe UmdSync::Core do
         # Ensure .gitignore doesn't exist
         File.delete(gitignore_path) if File.exist?(gitignore_path)
         
-        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/Created .gitignore/).to_stdout
+        Dir.chdir(temp_dir) do
+          expect { core.send(:ensure_node_modules_gitignored!) }.to output(/⚠️  .gitignore not found, creating one/).to_stdout
+        end
         
         expect(File.exist?(gitignore_path)).to be true
         expect(File.read(gitignore_path)).to include('/node_modules')
@@ -935,7 +947,9 @@ RSpec.describe UmdSync::Core do
         # Create .gitignore without node_modules
         File.write(gitignore_path, "*.log\n")
         
-        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/Added \/node_modules/).to_stdout
+        Dir.chdir(temp_dir) do
+          expect { core.send(:ensure_node_modules_gitignored!) }.to output(/✓ Added \/node_modules to .gitignore/).to_stdout
+        end
         
         content = File.read(gitignore_path)
         expect(content).to include('*.log')
@@ -945,7 +959,7 @@ RSpec.describe UmdSync::Core do
       it 'skips when node_modules already ignored' do
         File.write(gitignore_path, "/node_modules\n")
         
-        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/already in .gitignore/).to_stdout
+        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/✓ .gitignore already configured for UmdSync/).to_stdout
       end
 
       it 'recognizes various node_modules patterns' do
@@ -953,7 +967,7 @@ RSpec.describe UmdSync::Core do
         
         patterns.each do |pattern|
           File.write(gitignore_path, pattern)
-          expect { core.send(:ensure_node_modules_gitignored!) }.to output(/already in .gitignore/).to_stdout
+          expect { core.send(:ensure_node_modules_gitignored!) }.to output(/✓ .gitignore already configured for UmdSync/).to_stdout
         end
       end
     end

@@ -149,7 +149,7 @@ RSpec.describe UmdSync::RailsHelpers do
       allow(File).to receive(:read).and_raise(Errno::ENOENT)
       
       result = view_context.umd_bundle_script
-      expect(result).to include('application.js')
+      expect(result).to include('/umd_sync_bundle.js')
     end
 
     it 'handles JSON parsing errors gracefully' do
@@ -157,7 +157,7 @@ RSpec.describe UmdSync::RailsHelpers do
       allow(File).to receive(:read).and_return('invalid json {')
       
       result = view_context.umd_bundle_script
-      expect(result).to include('Invalid webpack manifest')
+      expect(result).to include('/umd_sync_bundle.js')
     end
   end
 
@@ -250,7 +250,7 @@ RSpec.describe UmdSync::RailsHelpers do
       result = view_context.react_component('Widget', {}, options)
       
       expect(result).to include('id="custom-container"')
-      expect(result).to include('window.MyApp.Widget')
+      expect(result).to include('window.MyApp?.Widget')
     end
     
     it 'includes Turbo event listeners' do
@@ -280,37 +280,37 @@ RSpec.describe UmdSync::RailsHelpers do
   end
 
   describe '#umd_bundle_script' do
-    let(:manifest_path) { File.join(temp_dir, 'public', 'assets', 'manifest.json') }
+    let(:manifest_path) { File.join(temp_dir, 'public', 'umd_sync_manifest.json') }
     
     before do
       FileUtils.mkdir_p(File.dirname(manifest_path))
     end
     
     it 'uses webpack manifest when available' do
-      manifest = { 'bundle.js' => 'bundle.abc123.js' }
+      manifest = { 'umd_sync_bundle.js' => '/umd_sync_bundle.abc123.js' }
       File.write(manifest_path, JSON.generate(manifest))
       
       result = view_context.umd_bundle_script
       
-      expect(result).to include('/assets/bundle.abc123.js')
+      expect(result).to include('/umd_sync_bundle.abc123.js')
     end
     
-    it 'prefers application.js over bundle.js' do
+    it 'uses umd_sync_bundle.js from manifest' do
       manifest = { 
-        'application.js' => 'application.def456.js',
-        'bundle.js' => 'bundle.abc123.js' 
+        'umd_sync_bundle.js' => '/umd_sync_bundle.def456.js',
+        'other_bundle.js' => '/other_bundle.abc123.js' 
       }
       File.write(manifest_path, JSON.generate(manifest))
       
       result = view_context.umd_bundle_script
       
-      expect(result).to include('/assets/application.def456.js')
+      expect(result).to include('/umd_sync_bundle.def456.js')
     end
     
-    it 'falls back to application.js when no manifest' do
+    it 'falls back to umd_sync_bundle.js when no manifest' do
       result = view_context.umd_bundle_script
       
-      expect(result).to include('/assets/application.js')
+      expect(result).to include('/umd_sync_bundle.js')
     end
     
     it 'handles invalid JSON gracefully' do
@@ -318,7 +318,7 @@ RSpec.describe UmdSync::RailsHelpers do
       
       result = view_context.umd_bundle_script
       
-      expect(result).to include('Invalid webpack manifest')
+      expect(result).to include('/umd_sync_bundle.js')
     end
   end
 

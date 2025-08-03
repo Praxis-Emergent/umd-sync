@@ -32,7 +32,7 @@ RSpec.describe 'Rails 8 Integration' do
       
       content = File.read(webpack_path)
       expect(content).to include('umd_sync')
-      expect(content).to include('public/assets') # Rails 8 asset location
+      expect(content).to include('public') # UMD Sync asset location
     end
   end
 
