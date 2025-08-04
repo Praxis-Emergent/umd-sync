@@ -8,5 +8,3 @@ import HelloWorld from './components/HelloWorld.jsx';
 window.islandjsRails = {
   HelloWorld
 };
-
-console.log('🏝️ IslandJS Rails loaded successfully!');

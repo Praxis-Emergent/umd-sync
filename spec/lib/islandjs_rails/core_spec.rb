@@ -691,7 +691,9 @@ RSpec.describe IslandjsRails::Core do
       it 'warns when file has been modified' do
         File.write(index_js_path, "custom content")
         
-        expect { core.send(:uncomment_react_imports!) }.to output(/has been modified/).to_stdout
+        Dir.chdir(temp_dir) do
+          expect { core.send(:uncomment_react_imports!) }.to output(/has been modified/).to_stdout
+        end
       end
 
       it 'handles missing index.js file' do
