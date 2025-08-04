@@ -62,50 +62,6 @@ namespace :islandjs do
     IslandjsRails.clean!
   end
 
-  desc "Build IslandJS webpack bundle for production"
-  task :build => :environment do
-    puts "🔨 Building IslandJS webpack bundle for production..."
-    
-    # Check if yarn is available
-    unless system('which yarn > /dev/null 2>&1')
-      puts "❌ yarn not found. Please install yarn first."
-      exit 1
-    end
-    
-    # Check if webpack-cli is available and install if missing
-    unless system('yarn list webpack-cli > /dev/null 2>&1')
-      puts "⚠️  webpack-cli not found, installing..."
-      unless system('yarn add --dev webpack-cli@^5.1.4')
-        puts "❌ Failed to install webpack-cli"
-        exit 1
-      end
-      puts "✓ webpack-cli installed"
-    end
-    
-    # Set production environment
-    ENV['NODE_ENV'] = 'production'
-    
-    # Run webpack build
-    puts "📦 Running webpack build..."
-    success = system('yarn build')
-    
-    if success
-      puts "✅ IslandJS bundle built successfully!"
-                        puts "📁 Bundle location: public/islands_bundle.js"
-                        puts "📄 Manifest location: public/islands_manifest.json"
-      puts ""
-      puts "🚀 Ready for deployment!"
-      puts "💡 Commit these assets to git for production deployment:"
-                        puts "   git add public/islands_*"
-      puts "   git commit -m 'Build IslandJS assets for production'"
-    else
-      puts "❌ Build failed!"
-      puts "🔍 Check your webpack configuration and dependencies"
-      puts "💡 Try running: yarn install"
-      exit 1
-    end
-  end
-
   desc "Show IslandJS configuration"
   task :config => :environment do
     config = IslandjsRails.configuration
@@ -133,7 +89,6 @@ namespace :islands do
   task :sync => 'islandjs:sync'
   task :status => 'islandjs:status'
   task :clean => 'islandjs:clean'
-  task :build => 'islandjs:build'
   task :config => 'islandjs:config'
   task :version => 'islandjs:version'
 end

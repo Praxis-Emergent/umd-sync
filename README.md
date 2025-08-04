@@ -61,6 +61,21 @@ IslandJS Rails follows the Rails philosophy:
 - **Don't Repeat Yourself**: One command replaces complex configurations
 - **Optimize for Programmer Happiness**: Simple, powerful, intuitive
 
+## Prerequisites
+
+IslandJS Rails requires:
+- **Node.js** 16+ with **npm** and **yarn**
+- **Rails** 7+ (tested with Rails 8)
+- **Ruby** 3.0+
+
+```bash
+# Check your versions
+node --version    # Should be 16+
+npm --version     # Any recent version
+yarn --version    # Install with: npm install -g yarn
+rails --version   # Should be 7.0+
+```
+
 ## Quick Start
 
 ### Installation
@@ -92,11 +107,34 @@ rails "islandjs:install[react-dom,18.3.1]"
 ### Write Modern JSX
 ```jsx
 // jsx/components/DashboardApp.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getInitialState, useTurboCache } from '../utils/turbo.js';
 
-function DashboardApp({ userId }) {
-  return <div>Welcome user {userId}!</div>;
+function DashboardApp({ containerId }) {
+  // Read initial state from data-initial-state attribute
+  const initialState = getInitialState(containerId);
+  
+  const [userId] = useState(initialState.userId);
+  const [welcomeCount, setWelcomeCount] = useState(initialState.welcomeCount || 0);
+
+  // Setup turbo cache persistence for state across navigation
+  useEffect(() => {
+    const cleanup = useTurboCache(containerId, { userId, welcomeCount }, true);
+    return cleanup;
+  }, [containerId, userId, welcomeCount]);
+
+  return (
+    <div>
+      <h2>Welcome user {userId}!</h2>
+      <p>You've visited this dashboard {welcomeCount} times</p>
+      <button onClick={() => setWelcomeCount(prev => prev + 1)}>
+        Visit Again
+      </button>
+    </div>
+  );
 }
+
+export default DashboardApp;
 ```
 
 ## CLI Commands
@@ -104,6 +142,9 @@ function DashboardApp({ userId }) {
 ### 📦 Package Management
 
 #### Rails Tasks
+
+> 💡 **Tip**: All `islandjs:*` tasks have shorter `islands:*` aliases (e.g., `rails islands:init` instead of `rails islandjs:init`)
+
 ```bash
 # Initialize IslandJS Rails in your project
 rails islandjs:init
@@ -132,7 +173,38 @@ rails islandjs:clean
 
 # Show configuration
 rails islandjs:config
+
+# Show IslandJS Rails version
+rails islandjs:version
 ```
+
+### 🛠️ Development & Production Commands
+
+For development and building your JavaScript:
+
+```bash
+# Development - watch for changes and rebuild automatically
+yarn watch
+# Or with npm: npm run watch
+
+# Production - build optimized bundle for deployment
+yarn build
+# Or with npm: npm run build
+
+# Install dependencies (after adding packages via islandjs:install)
+yarn install
+# Or with npm: npm install
+```
+
+**Development Workflow:**
+1. Run `yarn watch` (or `npm run watch`) in one terminal
+2. Edit your components in `app/javascript/islands/components/`
+3. Changes are automatically compiled to `public/islands_bundle.js`
+
+**Production Deployment:**
+1. Run `yarn build` (or `npm run build`) to create optimized bundle
+2. Commit the built assets: `git add public/islands_*`
+3. Deploy with confidence - assets are prebuilt
 
 ## 📦 Working with Scoped Packages
 
@@ -194,7 +266,7 @@ You can override the automatic global name detection for scoped packages:
 
 ```ruby
 # config/initializers/islandjs.rb
-IslandJS Rails.configure do |config|
+IslandjsRails.configure do |config|
   config.global_name_overrides = {
     '@solana/web3.js' => 'solanaWeb3',      # Already built-in
     '@mui/material' => 'MaterialUI',        # Custom override
@@ -270,7 +342,7 @@ rails "islandjs:install[@solana/web3]"     # ❌ Wrong
 **Issue: Global name conflicts**
 ```ruby
 # Override in configuration
-IslandJS Rails.configure do |config|
+IslandjsRails.configure do |config|
   config.global_name_overrides = {
     '@conflicting/package' => 'UniqueGlobalName'
   }
@@ -299,8 +371,8 @@ end
 
 ```ruby
 # config/initializers/islandjs.rb
-IslandJS Rails.configure do |config|
-  config.partials_dir = Rails.root.join('app/views/shared/umd')
+IslandjsRails.configure do |config|
+  config.partials_dir = Rails.root.join('app/views/shared/islands')
   config.webpack_config_path = Rails.root.join('webpack.config.js')
 end
 ```
@@ -325,7 +397,7 @@ Renders a React component with Turbo-compatible lifecycle.
   theme: 'dark' 
 }, {
   container_id: 'profile-widget',
-  namespace: 'window.islandjsRailsApp'
+  namespace: 'window.islandjsRails'
 }) %>
 ```
 
@@ -340,7 +412,7 @@ The `react_component` helper automatically:
 2. **Generates unique container IDs** for each component instance  
 3. **Passes only the container ID** to the React component
 
-This allows React components to persist state changes** back to the data attribute before turbo caches the page.
+This allows React components to persist state changes back to the data attribute before turbo caches the page.
 
 ### Example: Turbo-Compatible Component
 
@@ -422,7 +494,7 @@ persistState(containerId, stateObject);
 
 ```ruby
 # Override automatic global name detection
-IslandJS Rails.configure do |config|
+IslandjsRails.configure do |config|
   config.global_name_overrides = {
     '@mui/material' => 'MaterialUI',
     'react-router-dom' => 'ReactRouterDOM'
@@ -433,8 +505,8 @@ end
 ### Composable Architecture
 
 ```javascript
-// Create your own namespace
-window.islandjsRailsApp = {
+// Create your own namespace (or use the default window.islandjsRails)
+window.islandjsRails = {
   React: window.React,
   UI: window.MaterialUI,
   Utils: window._,
@@ -442,7 +514,7 @@ window.islandjsRailsApp = {
 };
 
 // Use in components
-const { React, UI, Utils } = window.islandjsRailsApp;
+const { React, UI, Utils } = window.islandjsRails;
 ```
 
 ### Webpack Integration
@@ -466,39 +538,39 @@ module.exports = {
 
 ```ruby
 # Initialize IslandJS Rails in project
-IslandJS Rails.init!
+IslandjsRails.init!
 
 # Install a package and create partial
-IslandJS Rails.install!('react', '18.3.1')
+IslandjsRails.install!('react', '18.3.1')
 
 # Update an existing package
-IslandJS Rails.update!('react', '18.3.1')
+IslandjsRails.update!('react', '18.3.1')
 
 # Remove a package (from package.json + delete partial)
-IslandJS Rails.remove!('react')
+IslandjsRails.remove!('react')
 
 # Sync all packages
-IslandJS Rails.sync!
+IslandjsRails.sync!
 
 # Show status
-IslandJS Rails.status!
+IslandjsRails.status!
 
 # Clean all partials and reset webpack externals
-IslandJS Rails.clean!
+IslandjsRails.clean!
 
 # Check what packages are installed
-IslandJS Rails.package_installed?('react')
+IslandjsRails.package_installed?('react')
 
 # Get version for a package
-IslandJS Rails.version_for('react')
+IslandjsRails.version_for('react')
 ```
 
 ### Configuration Options
 
 ```ruby
-IslandJS Rails.configure do |config|
-  # Directory for UMD partials (default: app/views/shared/umd)
-  config.partials_dir = Rails.root.join('app/views/shared/umd')
+IslandjsRails.configure do |config|
+  # Directory for UMD partials (default: app/views/shared/islands)
+  config.partials_dir = Rails.root.join('app/views/shared/islands')
   
   # Path to webpack config (default: webpack.config.js)
   config.webpack_config_path = Rails.root.join('webpack.config.js')
@@ -524,34 +596,54 @@ rails islandjs:install[react-dom]
 rails islandjs:install[chart.js]
 ```
 
+```jsx
+// jsx/components/Dashboard.jsx
+import React, { useState, useEffect } from 'react';
+import { getInitialState, useTurboCache } from '../utils/turbo.js';
+
+function Dashboard({ containerId }) {
+  const initialState = getInitialState(containerId);
+  
+  const [data, setData] = useState(initialState.data || []);
+  const [loading, setLoading] = useState(false);
+
+  // Setup turbo cache persistence
+  useEffect(() => {
+    const cleanup = useTurboCache(containerId, { data }, true);
+    return cleanup;
+  }, [containerId, data]);
+
+  useEffect(() => {
+    // Fetch dashboard data if not cached
+    if (data.length === 0) {
+      setLoading(true);
+      fetch('/api/dashboard')
+        .then(res => res.json())
+        .then(fetchedData => {
+          setData(fetchedData);
+          setLoading(false);
+        });
+    }
+  }, []);
+
+  if (loading) return <div>Loading dashboard...</div>;
+
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      {/* Chart component here */}
+      <p>Data points: {data.length}</p>
+    </div>
+  );
+}
+
+export default Dashboard;
+```
+
 ```erb
 <!-- app/views/dashboard/show.html.erb -->
 <%= islands %>
-
-<div id="dashboard-root"></div>
-
-<script>
-  const Dashboard = () => {
-    const [data, setData] = React.useState([]);
-    
-    React.useEffect(() => {
-      // Fetch dashboard data
-      fetch('/api/dashboard')
-        .then(res => res.json())
-        .then(setData);
-    }, []);
-    
-    return React.createElement('div', null, 
-      React.createElement('h1', null, 'Dashboard'),
-      // Chart component here
-    );
-  };
-  
-  ReactDOM.render(
-    React.createElement(Dashboard),
-    document.getElementById('dashboard-root')
-  );
-</script>
+<%= react_component('Dashboard', { data: @dashboard_data }) %>
 ```
 
 ### Turbo + React Integration
@@ -600,7 +692,7 @@ document.addEventListener('turbo:before-cache', () => {
 **Global name conflicts:**
 ```ruby
 # Override automatic detection
-IslandJS Rails.configure do |config|
+IslandjsRails.configure do |config|
   config.global_name_overrides = {
     'conflicting-package' => 'UniqueGlobalName'
   }
@@ -776,7 +868,7 @@ This test suite is designed to work with any CI system:
 - **Smart Build Detection**: Analyze package structure to generate optimal UMD configurations
 - **Local-Only Approach**: No external dependencies - everything generated and cached locally
 - **Community Build Recipes**: Share proven build configurations via GitHub, not file storage
-- **Zero-Config Generation**: `IslandJS Rails.install_package!('@tanstack/query', generate: true)` just works
+- **Zero-Config Generation**: `IslandjsRails.install_package!('@tanstack/query', generate: true)` just works
 - **Target Coverage**: Support 30-40% of packages that lack UMD builds (focusing on simple, commonly-used libraries)
 
 ### SSR Preview
@@ -789,9 +881,9 @@ This test suite is designed to work with any CI system:
 ### Local UMD Generation Preview
 ```ruby
 # Coming soon in v0.3.0:
-IslandJS Rails.install_package!('@tanstack/query', generate: true)
-IslandJS Rails.install_package!('zustand', generate: true)
-IslandJS Rails.install_package!('@emotion/react', generate: true)
+IslandjsRails.install_package!('@tanstack/query', generate: true)
+IslandjsRails.install_package!('zustand', generate: true)
+IslandjsRails.install_package!('@emotion/react', generate: true)
 # Locally generates UMD builds for 30-40% of packages missing them
 # No external services, no infrastructure costs, just works!
 ```

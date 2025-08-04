@@ -64,7 +64,7 @@ module IslandjsRails
       puts "                       rails \"islandjs:install[react-dom,18.3.1]\"  "
       puts "2. Start dev:          yarn watch"
       puts "3. Use components:     <%= react_component('HelloWorld') %>"
-      puts "4. Build for prod:     rails islandjs:build"
+      puts "4. Build for prod:     yarn build"
       puts "5. Commit assets:      git add public/islands_*"
   
       puts "\n🚀 Rails 8 Ready: Commit your built assets for bulletproof deploys!"
