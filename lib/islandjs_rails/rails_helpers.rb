@@ -1,30 +1,24 @@
 module IslandjsRails
   module RailsHelpers
-    # Main helper method to render all island partials and bundle script
+    # Main helper method that combines all IslandJS functionality
     def islands
-      island_partials + island_bundle_script
+      output = []
+      output << island_partials  # Now uses vendor UMD partial
+      output << island_bundle_script
+      output << umd_versions_debug if Rails.env.development?
+      output.compact.join("\n").html_safe
     end
 
     # Render all island partials (CDN scripts for external libraries)
+    # Now delegates to the vendor UMD partial for better performance
     def island_partials
-      output = []
-      
-      IslandjsRails.core.send(:installed_packages).each do |package_name|
-        if IslandjsRails.core.send(:supported_package?, package_name)
-          partial_name = "shared/islands/#{package_name.gsub(/[@\/]/, '_').gsub(/-/, '_')}"
-          
-          begin
-            output << render(partial: partial_name)
-          rescue ActionView::MissingTemplate
-            # Partial doesn't exist, skip silently or show warning in development
-            if Rails.env.development?
-              output << "<!-- IslandJS: Missing partial for #{package_name}. Run: rails islandjs:sync -->"
-            end
-          end
-        end
+      render(partial: "shared/islands/vendor_umd").html_safe
+    rescue ActionView::MissingTemplate
+      if Rails.env.development?
+        "<!-- IslandJS: Vendor UMD partial missing. Run: rails islandjs:init -->".html_safe
+      else
+        "".html_safe
       end
-      
-      output.join("\n").html_safe
     end
 
     # Render the main IslandJS bundle script tag
@@ -191,22 +185,19 @@ module IslandjsRails
     end
 
     def umd_partial_for(package_name)
-      # Support for backward compatibility
-      unless IslandjsRails.core.send(:supported_package?, package_name)
-        return '' if Rails.env.production?
-        return "<!-- Missing partial for #{package_name}. Run: rails islandjs:sync -->".html_safe
+      # Backward compatibility: delegate to vendor UMD partial
+      # Individual package partials are no longer used
+      if Rails.env.development?
+        "<!-- IslandJS: umd_partial_for('#{package_name}') is deprecated. Use island_partials or render 'shared/islands/vendor_umd' instead -->".html_safe
+      else
+        # In production, silently delegate to vendor partial
+        render(partial: "shared/islands/vendor_umd").html_safe
       end
-      
-      partial_name = "shared/islands/#{package_name.gsub(/[@\/]/, '_').gsub(/-/, '_')}"
-      
-      begin
-        render(partial: partial_name).html_safe
-      rescue ActionView::MissingTemplate
-        if Rails.env.development?
-          "<!-- Missing partial for #{package_name}. Run: rails islandjs:sync -->".html_safe
-        else
-          "".html_safe
-        end
+    rescue ActionView::MissingTemplate
+      if Rails.env.development?
+        "<!-- IslandJS: Vendor UMD partial missing. Run: rails islandjs:init -->".html_safe
+      else
+        "".html_safe
       end
     end
 

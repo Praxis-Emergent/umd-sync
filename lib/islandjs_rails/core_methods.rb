@@ -163,6 +163,64 @@ module IslandjsRails
       end
     end
 
+    def setup_vendor_system!
+      # Initialize empty vendor manifest
+      manifest_path = configuration.vendor_manifest_path
+      unless File.exist?(manifest_path)
+        require 'json'
+        initial_manifest = { 'libs' => [] }
+        FileUtils.mkdir_p(File.dirname(manifest_path))
+        File.write(manifest_path, JSON.pretty_generate(initial_manifest))
+        puts "  ✓ Created vendor manifest"
+      end
+
+      # Generate initial empty vendor partial
+      vendor_manager = IslandjsRails.vendor_manager
+      vendor_manager.send(:regenerate_vendor_partial!)
+      puts "  ✓ Generated vendor UMD partial"
+    end
+
+    def inject_islands_helper_into_layout!
+      layout_path = find_application_layout
+      return unless layout_path
+
+      content = File.read(layout_path)
+      islands_helper_line = '<%= islands %>'
+      vendor_render_line = '<%= render "shared/islands/vendor_umd" %>'
+
+      # Check if islands helper or vendor partial is already included
+      if content.include?(islands_helper_line) || content.include?('islands %>') ||
+         content.include?(vendor_render_line) || content.include?('render "shared/islands/vendor_umd"')
+        puts "  ✓ Islands helper already included in layout"
+        return
+      end
+
+      # Try to inject after existing head content or before </head>
+      if content.include?('</head>')
+        updated_content = content.sub(
+          /\s*<\/head>/,
+          "\n    #{islands_helper_line}\n  </head>"
+        )
+        
+        File.write(layout_path, updated_content)
+        puts "  ✓ Added islands helper to #{File.basename(layout_path)}"
+      else
+        puts "  ⚠️  Could not automatically inject islands helper. Please add manually:"
+        puts "     #{islands_helper_line}"
+      end
+    end
+
+    def find_application_layout
+      # Look for application layout in common locations
+      layout_paths = [
+        File.join(Dir.pwd, 'app', 'views', 'layouts', 'application.html.erb'),
+        File.join(Dir.pwd, 'app', 'views', 'layouts', 'application.html.haml'),
+        File.join(Dir.pwd, 'app', 'views', 'layouts', 'application.html.slim')
+      ]
+      
+      layout_paths.find { |path| File.exist?(path) }
+    end
+
     def check_node_tools!
       unless system('which npm > /dev/null 2>&1')
         puts "❌ npm not found. Please install Node.js and npm first."
@@ -615,8 +673,13 @@ module IslandjsRails
       content = File.read(webpack_config_path)
       
       externals = {}
-      installed_packages.each do |pkg|
-        next unless has_partial?(pkg)
+      
+      # Get installed packages from vendor manifest instead of partials
+      vendor_manager = IslandjsRails.vendor_manager
+      manifest = vendor_manager.send(:read_manifest)
+      
+      manifest['libs'].each do |lib|
+        pkg = lib['name']
         externals[pkg] = get_global_name_for_package(pkg)
       end
       
