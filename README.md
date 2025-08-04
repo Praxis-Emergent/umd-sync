@@ -88,6 +88,8 @@ rails "islandjs:install[react-dom,18.3.1]"
 <%= react_component('DashboardApp', { userId: current_user.id }) %>
 ```
 
+> 💡 **Turbo Cache Compatible**: React components automatically persist state across Turbo navigation! See [Turbo Cache Integration](#turbo-cache-integration) for details.
+
 ### Write Modern JSX
 ```jsx
 // jsx/components/DashboardApp.jsx
@@ -328,6 +330,92 @@ Renders a React component with Turbo-compatible lifecycle.
 }) %>
 ```
 
+## Turbo Cache Integration
+
+IslandJS Rails includes **built-in Turbo cache compatibility** for React components, ensuring state persists seamlessly across navigation.
+
+### How It Works
+
+The `react_component` helper automatically:
+1. **Stores initial props** as JSON in `data-initial-state` attributes
+2. **Generates unique container IDs** for each component instance  
+3. **Passes only the container ID** to the React component
+4. **Persists state changes** back to the data attribute on `turbo:before-cache`
+
+### Example: Turbo-Compatible Component
+
+See the complete working example: [`HelloWorld.jsx`](app/javascript/islands/components/HelloWorld.jsx)
+
+```jsx
+import React, { useState, useEffect } from 'react';
+import { getInitialState, useTurboCache } from '../utils/turbo.js';
+
+const HelloWorld = ({ containerId }) => {
+  // Read initial state from data-initial-state attribute
+  const initialState = getInitialState(containerId);
+  
+  const [count, setCount] = useState(initialState.count || 0);
+  const [message, setMessage] = useState(initialState.message || "Hello!");
+
+  // Persist state across Turbo navigation
+  useEffect(() => {
+    const cleanup = useTurboCache(containerId, { count, message }, true);
+    return cleanup;
+  }, [containerId, count, message]);
+
+  return (
+    <div>
+      <p>{message}</p>
+      <button onClick={() => setCount(count + 1)}>
+        Clicked {count} times
+      </button>
+    </div>
+  );
+};
+```
+
+### Usage in Views
+
+```erb
+<!-- In any Rails view -->
+<%= react_component('HelloWorld', { 
+  message: 'Hello from Rails!', 
+  count: 5 
+}) %>
+```
+
+### Live Demo
+
+See the complete demo: [`react.html.erb`](app/views/islandjs_demo/react.html.erb)
+
+The demo shows:
+- ✅ **State persistence** across Turbo navigation
+- ✅ **Automatic state restoration** when navigating back
+- ✅ **Zero configuration** - works out of the box
+- ✅ **Compatible with Turbo Drive** and all Hotwire features
+
+### Turbo Utility Functions
+
+IslandJS Rails provides utility functions for Turbo compatibility:
+
+```javascript
+// Get initial state from container's data attribute
+const initialState = getInitialState(containerId);
+
+// Set up automatic state persistence
+const cleanup = useTurboCache(containerId, currentState, autoRestore);
+
+// Manually persist state (if needed)
+persistState(containerId, stateObject);
+```
+
+### Benefits
+
+- **🔄 Seamless Navigation**: State survives Turbo page transitions
+- **⚡ Zero Setup**: Works automatically with `react_component` helper  
+- **🎯 Rails-Native**: Designed specifically for Rails + Turbo workflows
+- **🏝️ Island Architecture**: Each component manages its own state independently
+
 ## Advanced Usage
 
 ### Custom Global Names
@@ -468,8 +556,16 @@ rails islandjs:install[chart.js]
 
 ### Turbo + React Integration
 
+**⭐ Recommended: Use Built-in Turbo Cache**
+
+IslandJS Rails now includes automatic Turbo cache compatibility! See the [Turbo Cache Integration](#turbo-cache-integration) section above for the modern approach with zero manual setup.
+
+**Alternative: Manual Turbo Integration**
+
+For custom scenarios, you can manually handle Turbo events:
+
 ```javascript
-// Perfect for Rails + Turbo apps
+// Manual approach (not needed with react_component helper)
 document.addEventListener('turbo:load', () => {
   const container = document.getElementById('react-component');
   if (container && !container.hasChildNodes()) {

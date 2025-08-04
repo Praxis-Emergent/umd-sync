@@ -215,7 +215,8 @@ RSpec.describe IslandjsRails::RailsHelpers do
       
       expect(result).to match(/id="react-empty-component-[a-f0-9]{8}"/)
       expect(result).to include('const props = { containerId:')
-      expect(result).to include(x27data-initial-state="{}"x27)    end
+      expect(result).to include('data-initial-state="{}"')
+    end
 
     it 'supports custom namespaces' do
       result = view_context.react_component('CustomComponent', {}, {
@@ -254,7 +255,8 @@ RSpec.describe IslandjsRails::RailsHelpers do
       expect(result).to match(/id="react-my-component-[a-f0-9]{8}"/)
       expect(result).to include('data-user-id="123"')
       expect(result).to include('data-theme="dark"')
-      expect(result).to include(x27data-initial-state=x27)      expect(result).to include('window.islandjsRails.MyComponent')
+      expect(result).to include('data-initial-state=')
+      expect(result).to include('window.islandjsRails.MyComponent')
       expect(result).to include('function mountMyComponent()')
       expect(result).to include('function cleanupMyComponent()')
     end
