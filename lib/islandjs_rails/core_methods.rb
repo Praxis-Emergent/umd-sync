@@ -484,59 +484,70 @@ module IslandjsRails
     end
 
     def generate_webpack_config!
-      webpack_content = <<~JS
-        const path = require('path');
-        const TerserPlugin = require('terser-webpack-plugin');
-        const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
-        
-        const isProduction = process.env.NODE_ENV === 'production';
-        
-        module.exports = {
-          mode: isProduction ? 'production' : 'development',
-          entry: {
-            islands_bundle: ['./app/javascript/islands/index.js']
-          },
-          externals: {
-            // IslandjsRails managed externals - do not edit manually
-          },
-          output: {
-            filename: '[name].js',
-            path: path.resolve(__dirname, 'public'),
-            publicPath: '/',
-            clean: false
-          },
-          module: {
-            rules: [
-              {
-                test: /\\.(js|jsx)$/,
-                exclude: /node_modules/,
-                use: {
-                  loader: 'babel-loader',
-                  options: {
-                    presets: ['@babel/preset-env', '@babel/preset-react']
+      # Copy from gem's template file instead of hardcoded string
+      gem_template_path = File.join(__dir__, '..', '..', 'webpack.config.js')
+      
+      if File.exist?(gem_template_path)
+        FileUtils.cp(gem_template_path, configuration.webpack_config_path)
+        puts "✓ Created webpack.config.js from template"
+      else
+        puts "⚠️  Template file not found: #{gem_template_path}"
+        # Fallback to hardcoded version (though this shouldn't happen)
+        webpack_content = <<~JS
+          const path = require('path');
+          const TerserPlugin = require('terser-webpack-plugin');
+          const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
+          
+          const isProduction = process.env.NODE_ENV === 'production';
+          
+          module.exports = {
+            mode: isProduction ? 'production' : 'development',
+            entry: {
+              islands_bundle: ['./app/javascript/islands/index.js']
+            },
+            externals: {
+              // IslandjsRails managed externals - do not edit manually
+            },
+            output: {
+              filename: '[name].[contenthash].js',
+              path: path.resolve(__dirname, 'public'),
+              publicPath: '/',
+              clean: false
+            },
+            module: {
+              rules: [
+                {
+                  test: /\\.(js|jsx)$/,
+                  exclude: /node_modules/,
+                  use: {
+                    loader: 'babel-loader',
+                    options: {
+                      presets: ['@babel/preset-env', '@babel/preset-react']
+                    }
                   }
                 }
-              }
-            ]
-          },
-          resolve: {
-            extensions: ['.js', '.jsx']
-          },
-          optimization: {
-            minimize: isProduction,
-            minimizer: [new TerserPlugin()]
-          },
-          plugins: [
-            new WebpackManifestPlugin({
-              fileName: 'islands_manifest.json',
-              publicPath: '/'
-            })
-          ],
-          devtool: isProduction ? false : 'eval-source-map'
-        };
-      JS
-      
-      File.write(configuration.webpack_config_path, webpack_content)
+              ]
+            },
+            resolve: {
+              extensions: ['.js', '.jsx']
+            },
+            optimization: {
+              minimize: isProduction,
+              minimizer: [new TerserPlugin()]
+            },
+            plugins: [
+              new WebpackManifestPlugin({
+                fileName: 'islands_manifest.json',
+                publicPath: '/'
+              })
+            ],
+            devtool: isProduction ? false : 'source-map'
+          };
+        JS
+        
+        File.write(configuration.webpack_config_path, webpack_content)
+        puts "✓ Created webpack.config.js from fallback template"
+      end
     end
 
     def url_accessible?(url)

@@ -10,10 +10,10 @@ module.exports = {
     islands_bundle: ['./app/javascript/islands/index.js']
   },
   externals: {
-  // IslandJS managed externals - do not edit manually
-},
+    // IslandJS managed externals - do not edit manually
+  },
   output: {
-    filename: '[name].js',
+    filename: '[name].[contenthash].js',
     path: path.resolve(__dirname, 'public'),
     publicPath: '/',
     clean: false

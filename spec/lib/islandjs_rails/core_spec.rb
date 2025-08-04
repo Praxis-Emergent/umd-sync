@@ -526,7 +526,8 @@ RSpec.describe IslandjsRails::Core do
       expect(config_content).to include('TerserPlugin')
       expect(config_content).to include('WebpackManifestPlugin')
       expect(config_content).to include('babel-loader')
-      expect(config_content).to include('eval-source-map')
+      expect(config_content).to include('source-map')
+      expect(config_content).to include('[name].[contenthash].js')
     end
 
     it 'handles partial content generation with special characters' do
