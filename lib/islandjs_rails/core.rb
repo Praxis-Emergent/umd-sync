@@ -357,57 +357,47 @@ module IslandjsRails
       components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands', 'components')
       FileUtils.mkdir_p(components_dir)
       
+      # Create turbo.js utility first
+      create_turbo_utility!
+      
       hello_world_path = File.join(components_dir, 'HelloWorld.jsx')
       
       if File.exist?(hello_world_path)
         puts "✓ HelloWorld.jsx already exists"
         return
       end
+
+      # Copy from gem's template file instead of hardcoded string
+      gem_template_path = File.join(__dir__, '..', '..', 'app', 'javascript', 'islands', 'components', 'HelloWorld.jsx')
       
-      hello_world_content = <<~JSX
-        import React, { useState } from 'react';
-        
-        const HelloWorld = ({ message = "Hello from IslandjsRails!" }) => {
-          const [count, setCount] = useState(0);
-          
-          return (
-            <div style={{
-              padding: '20px',
-              border: '2px solid #4F46E5',
-              borderRadius: '8px',
-              backgroundColor: '#F8FAFC',
-              textAlign: 'center',
-              fontFamily: 'system-ui, sans-serif'
-            }}>
-              <h2 style={{ color: '#4F46E5', margin: '0 0 16px 0' }}>
-                🏝️ React + IslandjsRails
-              </h2>
-              <p style={{ margin: '0 0 16px 0', fontSize: '18px' }}>
-                {message}
-              </p>
-              <button
-                onClick={() => setCount(count + 1)}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#4F46E5',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
-              >
-                Clicked {count} times
-              </button>
-            </div>
-          );
-        };
-        
-        export default HelloWorld;
-      JSX
+      if File.exist?(gem_template_path)
+        FileUtils.cp(gem_template_path, hello_world_path)
+        puts "✓ Created HelloWorld.jsx component"
+      else
+        puts "⚠️  Template file not found: #{gem_template_path}"
+      end
+    end
+
+    def create_turbo_utility!
+      utils_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands', 'utils')
+      FileUtils.mkdir_p(utils_dir)
       
-      File.write(hello_world_path, hello_world_content)
-      puts "✓ Created HelloWorld.jsx component"
+      turbo_path = File.join(utils_dir, 'turbo.js')
+      
+      if File.exist?(turbo_path)
+        puts "✓ turbo.js utility already exists"
+        return
+      end
+      
+      # Copy from gem's template file instead of hardcoded string
+      gem_template_path = File.join(__dir__, '..', '..', 'app', 'javascript', 'islands', 'utils', 'turbo.js')
+      
+      if File.exist?(gem_template_path)
+        FileUtils.cp(gem_template_path, turbo_path)
+        puts "✓ Created turbo.js utility"
+      else
+        puts "⚠️  Template file not found: #{gem_template_path}"
+      end
     end
   end
 end
