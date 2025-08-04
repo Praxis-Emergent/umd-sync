@@ -1216,18 +1216,30 @@ RSpec.describe IslandjsRails::Core do
     end
 
     describe '#installed_packages' do
-      it 'combines dependencies and devDependencies' do
+      it 'returns only dependencies and filters out devDependencies and build tools' do
         # Manually create package.json with both dependencies and devDependencies
         package_json = {
           'name' => 'test-app',
           'version' => '1.0.0',
-          'dependencies' => { 'prod-dep' => '1.0.0' },
-          'devDependencies' => { 'dev-dep' => '2.0.0' }
+          'dependencies' => { 
+            'react' => '18.3.1',
+            'lodash' => '4.17.21',
+            'webpack' => '5.88.2'  # This should be filtered out as a build tool
+          },
+          'devDependencies' => { 
+            'babel-loader' => '9.1.3',  # This should be ignored (devDependency)
+            '@babel/core' => '7.23.0'   # This should be ignored (devDependency)
+          }
         }
         File.write(File.join(temp_dir, 'package.json'), JSON.pretty_generate(package_json))
         
         packages = core.send(:installed_packages)
-        expect(packages).to include('prod-dep', 'dev-dep')
+        # Should include browser libraries from dependencies
+        expect(packages).to include('react', 'lodash')
+        # Should exclude build tools even from dependencies
+        expect(packages).not_to include('webpack')
+        # Should exclude all devDependencies
+        expect(packages).not_to include('babel-loader', '@babel/core')
       end
 
       it 'handles missing dependencies sections' do

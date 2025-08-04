@@ -79,6 +79,9 @@ RSpec.describe 'Rails 8 + Turbo Compatibility' do
     it 'uses external scripts with asset_url in production with import maps' do
       allow(Rails).to receive(:env).and_return(double(development?: false, production?: true))
       allow(test_instance).to receive(:import_maps_enabled?).and_return(true)
+      # Mock the external script file existence
+      external_script_path = Rails.root.join('public', 'islands', 'mount', 'test_component.js')
+      allow(File).to receive(:exist?).with(external_script_path).and_return(true)
       
       result = test_instance.react_component('TestComponent', {})
       
@@ -183,7 +186,11 @@ RSpec.describe 'Rails 8 + Turbo Compatibility' do
 
   describe 'Import Maps Integration' do
     it 'detects import maps and uses external scripts' do
+      allow(Rails).to receive(:env).and_return(double(development?: false, production?: true))
       allow(test_instance).to receive(:import_maps_enabled?).and_return(true)
+      # Mock the external script file existence
+      external_script_path = Rails.root.join('public', 'islands', 'mount', 'test_component.js')
+      allow(File).to receive(:exist?).with(external_script_path).and_return(true)
       
       result = test_instance.react_component('TestComponent', {})
       
@@ -202,11 +209,12 @@ RSpec.describe 'Rails 8 + Turbo Compatibility' do
 
   describe 'Asset Path Resolution' do
     it 'uses asset_url when available' do
-      result = test_instance.react_component('TestComponent', {})
-      
       # In production mode, it should use the asset_url helper
       allow(Rails).to receive(:env).and_return(double(development?: false, production?: true))
       allow(test_instance).to receive(:import_maps_enabled?).and_return(true)
+      # Mock the external script file existence
+      external_script_path = Rails.root.join('public', 'islands', 'mount', 'test_component.js')
+      allow(File).to receive(:exist?).with(external_script_path).and_return(true)
       
       result = test_instance.react_component('TestComponent', {})
       expect(result).to include('https://cdn.example.com')

@@ -89,6 +89,9 @@ RSpec.describe IslandjsRails::RailsHelpers do
 
     it 'uses external scripts in production' do
       allow(Rails).to receive(:env).and_return(double(development?: false, production?: true))
+      # Mock the external script file existence
+      external_script_path = Rails.root.join('public', 'islands', 'mount', 'hello_world.js')
+      allow(File).to receive(:exist?).with(external_script_path).and_return(true)
       
       result = test_instance.react_component('HelloWorld', {})
       
