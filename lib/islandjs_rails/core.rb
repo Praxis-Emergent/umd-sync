@@ -114,12 +114,17 @@ module IslandjsRails
       puts "✅ Successfully updated #{package_name}!"
     end
 
-    # Remove a specific package
-    def remove!(package_name)
-      puts "🗑️  Removing island package: #{package_name}"
+    # Remove a package
+    def remove!(package_name, graceful: false)
+      puts "🗑️  Removing #{package_name}..."
       
       unless package_installed?(package_name)
-        raise IslandjsRails::PackageNotFoundError, "Package #{package_name} is not installed"
+        if graceful
+        puts "❌ Package #{package_name} is not installed"
+          return
+        else
+          raise IslandjsRails::PackageNotFoundError, "Package #{package_name} is not installed"
+        end
       end
       
       remove_package_via_yarn(package_name)
@@ -134,29 +139,32 @@ module IslandjsRails
       puts "✅ Successfully removed #{package_name}!"
     end
 
-    # Sync all packages
+    # Sync all installed packages (reinstall partials)
     def sync!
-      puts "🔄 Syncing all UMD packages..."
+      puts "🔄 Syncing all packages..."
       
-      packages = installed_packages
-      if packages.empty?
+      installed = installed_packages
+      if installed.empty?
         puts "📦 No packages found in package.json"
         return
       end
       
-      packages.each do |package_name|
+      installed.each do |package_name|
         next unless supported_package?(package_name)
         puts "  📦 Processing #{package_name}..."
         download_and_create_partial!(package_name)
       end
+      
+      # Update webpack externals to use global variables from UMD partials
+      update_webpack_externals
       
       puts "✅ Sync completed!"
     end
 
     # Show status of all packages
     def status!
-              puts "📊 IslandjsRails Status"
-      puts "=" * 40
+      puts "📊 IslandJS Status"
+      puts "========================================"
       
       packages = installed_packages
       if packages.empty?
@@ -172,12 +180,12 @@ module IslandjsRails
       end
     end
 
-    # Clean all partials
+    # Clean all partials and reset webpack externals
     def clean!
       puts "🧹 Cleaning UMD partials..."
       
       if Dir.exist?(configuration.partials_dir)
-        Dir.glob(File.join(configuration.partials_dir, '*.html.erb')).each do |file|
+        Dir.glob(File.join(configuration.partials_dir, '*.erb')).each do |file|
           File.delete(file)
           puts "  ✓ Removed #{File.basename(file)}"
         end
@@ -367,8 +375,19 @@ module IslandjsRails
       hello_world_content = <<~JSX
         import React, { useState } from 'react';
         
-        const HelloWorld = ({ message = "Hello from IslandjsRails!" }) => {
+        const HelloWorld = ({ message = "Hello from IslandjsRails!", _islandId }) => {
           const [count, setCount] = useState(0);
+          const [inputValue, setInputValue] = useState('');
+          
+          // Use IslandjsRails Turbo cache sync to preserve state across navigation
+          if (typeof window !== 'undefined' && window.IslandjsRails?.useTurboCacheSync) {
+            window.IslandjsRails.useTurboCacheSync({ 
+              message,
+              count, 
+              inputValue,
+              _islandId 
+            }, _islandId);
+          }
           
           return (
             <div style={{
@@ -385,6 +404,21 @@ module IslandjsRails
               <p style={{ margin: '0 0 16px 0', fontSize: '18px' }}>
                 {message}
               </p>
+              <div style={{ margin: '0 0 16px 0' }}>
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Type something (state preserved on navigation!)"
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: '1px solid #D1D5DB',
+                    width: '300px',
+                    marginBottom: '8px'
+                  }}
+                />
+              </div>
               <button
                 onClick={() => setCount(count + 1)}
                 style={{
@@ -399,6 +433,13 @@ module IslandjsRails
               >
                 Clicked {count} times
               </button>
+              <p style={{ 
+                marginTop: '16px', 
+                fontSize: '12px', 
+                color: '#6B7280' 
+              }}>
+                🎉 Navigate away and back - your state will be preserved!
+              </p>
             </div>
           );
         };

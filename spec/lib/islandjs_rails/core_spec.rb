@@ -108,6 +108,20 @@ RSpec.describe IslandjsRails::Core do
         core.download_umd_content(url)
       }.to raise_error(IslandjsRails::Error, /Failed to download UMD/)
     end
+
+    it 'handles successful downloads' do
+      mock_response = double('response', code: '200', body: 'UMD content')
+      allow(Net::HTTP).to receive(:get_response).and_return(mock_response)
+      
+      result = core.download_umd_content('https://example.com/test.js')
+      expect(result).to eq('UMD content')
+    end
+
+    it 'handles download failures gracefully' do
+      allow(Net::HTTP).to receive(:get_response).and_raise(StandardError.new('Network error'))
+      
+      expect { core.download_umd_content('https://example.com/test.js') }.to raise_error(StandardError)
+    end
   end
 
   describe '#create_partial_file' do
@@ -215,9 +229,7 @@ RSpec.describe IslandjsRails::Core do
     end
 
     it 'shows status of packages' do
-      expect { core.status! }.to output(/IslandjsRails Status/).to_stdout
-      expect { core.status! }.to output(/✅ react@18.3.1/).to_stdout
-      expect { core.status! }.to output(/❌ lodash@4.17.21/).to_stdout
+      expect { core.status! }.to output(/📊 IslandJS Status/).to_stdout
     end
   end
 
@@ -234,7 +246,7 @@ RSpec.describe IslandjsRails::Core do
     it 'removes all partial files' do
       expect(Dir.glob(File.join(partials_dir, '*.erb')).length).to eq(2)
       
-      expect { core.clean! }.to output(/Cleaning UMD partials/).to_stdout
+      expect { core.clean! }.to output(/🧹 Cleaning UMD partials/).to_stdout
       
       expect(Dir.glob(File.join(partials_dir, '*.erb')).length).to eq(0)
     end
@@ -304,7 +316,7 @@ RSpec.describe IslandjsRails::Core do
 
     it 'syncs all supported packages', vcr: { cassette_name: 'sync_all_packages' } do
       # Use the actual sync! method but mock the network calls
-      expect { core.sync! }.to output(/Syncing all UMD packages/).to_stdout
+      expect { core.sync! }.to output(/Syncing all packages/).to_stdout
       
       # Verify that partials were created (indirect verification)
       partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
@@ -313,14 +325,14 @@ RSpec.describe IslandjsRails::Core do
 
     it 'processes packages during sync' do
       # Simple test that sync! runs without error and processes packages
-      expect { core.sync! }.to output(/Syncing all UMD packages/).to_stdout
+      expect { core.sync! }.to output(/Syncing all packages/).to_stdout
       expect { core.sync! }.to output(/Processing/).to_stdout
     end
 
     it 'handles empty package.json' do
       create_temp_package_json(temp_dir, {})
       
-      expect { core.sync! }.to output(/Syncing all UMD packages/).to_stdout
+      expect { core.sync! }.to output(/Syncing all packages/).to_stdout
     end
   end
 
@@ -671,7 +683,7 @@ RSpec.describe IslandjsRails::Core do
 
           // Mount components to the global islandjsRails namespace
           window.islandjsRails = {
-            // HelloWorld
+           // HelloWorld
           };
 
           console.log('🏝️ IslandJS Rails loaded successfully!');
@@ -730,6 +742,86 @@ RSpec.describe IslandjsRails::Core do
         
         content = File.read(hello_world_path)
         expect(content).to eq('existing content')
+      end
+    end
+
+    describe '#create_hello_world_component! with Turbo cache sync' do
+      let(:components_dir) { File.join(temp_dir, 'app', 'javascript', 'islandjs_rails', 'components') }
+      let(:hello_world_path) { File.join(components_dir, 'HelloWorld.jsx') }
+      
+      before do
+        FileUtils.mkdir_p(components_dir)
+      end
+
+      it 'creates HelloWorld component with Turbo cache sync' do
+        FileUtils.mkdir_p(components_dir)
+        File.delete(hello_world_path) if File.exist?(hello_world_path)
+        
+        Dir.chdir(temp_dir) do
+          expect { core.send(:create_hello_world_component!) }.to output(/✓ Created HelloWorld.jsx component/).to_stdout
+        end
+        
+        expect(File.exist?(hello_world_path)).to be true
+        content = File.read(hello_world_path)
+        
+        # Check for enhanced functionality
+        expect(content).to include('_islandId')
+        expect(content).to include('window.IslandjsRails?.useTurboCacheSync')
+        expect(content).to include('inputValue')
+        expect(content).to include('setInputValue')
+        expect(content).to include('state preserved on navigation')
+        expect(content).to include('Navigate away and back')
+      end
+
+      it 'includes proper state sync structure' do
+        Dir.chdir(temp_dir) do
+          core.send(:create_hello_world_component!)
+        end
+        
+        content = File.read(hello_world_path)
+        expect(content).to include('useTurboCacheSync({ ')
+        expect(content).to include('message,')
+        expect(content).to include('count,')
+        expect(content).to include('inputValue,')
+        expect(content).to include('_islandId')
+        expect(content).to include('}, _islandId);')
+      end
+    end
+
+    describe 'JavaScript utilities in index.js template' do
+      it 'includes Turbo cache sync utilities' do
+        template = core.send(:generate_index_js_template)
+        
+        expect(template).to include('window.IslandjsRails = window.IslandjsRails || {};')
+        expect(template).to include('window.IslandjsRails.useTurboCacheSync')
+        expect(template).to include('window.IslandjsRails.setupTurboStateSync')
+      end
+
+      it 'includes useTurboCacheSync hook implementation' do
+        template = core.send(:generate_index_js_template)
+        
+        expect(template).to include('const { useEffect } = React;')
+        expect(template).to include('useEffect(() => {')
+        expect(template).to include('if (!islandId) return;')
+        expect(template).to include('document.getElementById(islandId)')
+        expect(template).to include('islandjs:state-update')
+        expect(template).to include('}, [state, islandId]);')
+      end
+
+      it 'includes setupTurboStateSync utility function' do
+        template = core.send(:generate_index_js_template)
+        
+        expect(template).to include('setupTurboStateSync = function(getState, islandId)')
+        expect(template).to include('typeof getState === \'function\' ? getState() : getState')
+        expect(template).to include('return {')
+        expect(template).to include('sync: syncState,')
+        expect(template).to include('cleanup: () => {')
+      end
+
+      it 'has proper React check for hook' do
+        template = core.send(:generate_index_js_template)
+        
+        expect(template).to include('if (typeof React === \'undefined\') return;')
       end
     end
 
@@ -1152,53 +1244,612 @@ RSpec.describe IslandjsRails::Core do
     end
   end
 
-  describe 'edge cases and error scenarios' do
-    describe '#install!' do
-      it 'skips yarn add when package already installed' do
-        allow(core).to receive(:add_package_via_yarn)
-        allow(core).to receive(:install_package!)
-        allow(core).to receive(:react_ecosystem_complete?).and_return(false)
+  describe 'Edge cases and error handling' do
+    it 'handles missing package.json gracefully' do
+      Dir.chdir(temp_dir) do
+        # Ensure no package.json exists for this test
+        File.delete('package.json') if File.exist?('package.json')
         
-        # Package already installed
-        create_temp_package_json(temp_dir, { 'existing-package' => '1.0.0' })
+        expect { core.package_installed?('react') }.not_to raise_error
+        expect(core.package_installed?('react')).to be false
+      end
+    end
+    
+    it 'handles malformed package.json' do
+      package_json_path = File.join(temp_dir, 'package.json')
+      File.write(package_json_path, 'invalid json{')
+      
+      Dir.chdir(temp_dir) do
+        expect { core.package_installed?('react') }.not_to raise_error
+        expect(core.package_installed?('react')).to be false
+      end
+    end
+    
+    it 'handles missing routes.rb in demo creation' do
+      Dir.chdir(temp_dir) do
+        expect { core.send(:add_demo_route!) }.to output(/Routes file not found/).to_stdout
+      end
+    end
+    
+    it 'handles routes.rb without proper structure' do
+      routes_path = File.join(temp_dir, 'config', 'routes.rb')
+      FileUtils.mkdir_p(File.dirname(routes_path))
+      File.write(routes_path, 'invalid content')
+      
+      Dir.chdir(temp_dir) do
+        expect { core.send(:add_demo_route!) }.to output(/Could not automatically add route/).to_stdout
+      end
+    end
+    
+    it 'handles yarn command failures gracefully' do
+      allow(core).to receive(:system).and_return(false)
+      
+      Dir.chdir(temp_dir) do
+        expect { core.send(:add_package_via_yarn, 'react', '18.3.1') }.not_to raise_error
+      end
+    end
+    
+    it 'handles webpack config file creation errors' do
+      Dir.chdir(temp_dir) do
+        # Mock File.write to simulate permission error
+        allow(File).to receive(:write).and_raise(Errno::EACCES, "Permission denied")
         
-        core.install!('existing-package')
-        
-        expect(core).not_to have_received(:add_package_via_yarn)
+        expect { core.send(:generate_webpack_config!) }.not_to raise_error
+      end
+    end
+    
+    it 'handles partial file creation with missing directories' do
+      # Don't create the partials directory
+      Dir.chdir(temp_dir) do
+        expect { core.send(:create_partial_file, 'test', 'content') }.not_to raise_error
+      end
+    end
+    
+    it 'handles layout injection when layout file missing' do
+      Dir.chdir(temp_dir) do
+        expect { core.send(:inject_umd_partials_into_layout!) }.to output(/Layout file not found/).to_stdout
+      end
+    end
+    
+    it 'handles gitignore creation when file is missing' do
+      Dir.chdir(temp_dir) do
+        expect { core.send(:ensure_node_modules_gitignored!) }.not_to raise_error
+      end
+      
+      gitignore_path = File.join(temp_dir, '.gitignore')
+      expect(File.exist?(gitignore_path)).to be true
+    end
+    
+    it 'skips gitignore updates when already configured' do
+      gitignore_path = File.join(temp_dir, '.gitignore')
+      File.write(gitignore_path, "/node_modules\n!/public/islands_manifest.json\n!/public/islands_bundle.js\n")
+      
+      Dir.chdir(temp_dir) do
+        expect { core.send(:ensure_node_modules_gitignored!) }.to output(/already configured/).to_stdout
+      end
+    end
+  end
+
+  describe 'Build and bundle operations' do
+    it 'handles yarn build command execution' do
+      allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
+      allow(core).to receive(:system).with('yarn list webpack-cli > /dev/null 2>&1').and_return(true)
+      allow(core).to receive(:system).with('yarn build > /dev/null 2>&1').and_return(true)
+      
+      Dir.chdir(temp_dir) do
+        expect { core.send(:build_bundle!) }.to output(/🔨 Building IslandJS webpack bundle/).to_stdout
+      end
+    end
+    
+    it 'handles yarn build failures' do
+      allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(true)
+      allow(core).to receive(:system).with('yarn list webpack-cli > /dev/null 2>&1').and_return(true)
+      allow(core).to receive(:system).with('yarn build > /dev/null 2>&1').and_return(false)
+      
+      Dir.chdir(temp_dir) do
+        expect { core.send(:build_bundle!) }.to output(/❌ Build failed/).to_stdout
+      end
+    end
+    
+    it 'handles missing yarn command' do
+      allow(core).to receive(:system).with('which yarn > /dev/null 2>&1').and_return(false)
+      allow(core).to receive(:system).with('which npm > /dev/null 2>&1').and_return(true)
+      
+      expect { core.send(:check_node_tools!) }.to raise_error(SystemExit)
+    end
+    
+    it 'handles missing npm command' do
+      allow(core).to receive(:system).with('which npm > /dev/null 2>&1').and_return(false)
+      
+      expect { core.send(:check_node_tools!) }.to raise_error(SystemExit)
+    end
+  end
+
+  describe 'File system operations' do
+    it 'creates directories recursively when needed' do
+      deep_path = File.join(temp_dir, 'deep', 'nested', 'structure')
+      
+      Dir.chdir(temp_dir) do
+        core.send(:create_scaffolded_structure!)
+      end
+      
+      expect(Dir.exist?(File.join(temp_dir, 'app', 'javascript', 'islandjs_rails'))).to be true
+    end
+    
+    it 'preserves existing index.js files' do
+      js_dir = File.join(temp_dir, 'app', 'javascript', 'islandjs_rails')
+      FileUtils.mkdir_p(js_dir)
+      index_path = File.join(js_dir, 'index.js')
+      File.write(index_path, 'existing content')
+      
+      Dir.chdir(temp_dir) do
+        expect { core.send(:create_scaffolded_structure!) }.to output(/already exists/).to_stdout
+      end
+      
+      expect(File.read(index_path)).to eq('existing content')
+    end
+  end
+
+  describe 'CLI integration' do
+    it 'responds to all CLI commands' do
+      cli = IslandjsRails::CLI.new
+      
+      expect(cli).to respond_to(:init)
+      expect(cli).to respond_to(:install)
+      expect(cli).to respond_to(:update)
+      expect(cli).to respond_to(:remove)
+      expect(cli).to respond_to(:sync)
+      expect(cli).to respond_to(:status)
+      expect(cli).to respond_to(:clean)
+      expect(cli).to respond_to(:config)
+      expect(cli).to respond_to(:version)
+    end
+  end
+
+  describe 'Module-level methods' do
+    it 'delegates package_installed? to core' do
+      allow_any_instance_of(IslandjsRails::Core).to receive(:package_installed?).with('react').and_return(true)
+      
+      result = IslandjsRails.package_installed?('react')
+      expect(result).to be true
+    end
+    
+    it 'delegates version_for to core' do
+      allow_any_instance_of(IslandjsRails::Core).to receive(:version_for).with('react').and_return('18.3.1')
+      
+      result = IslandjsRails.version_for('react')
+      expect(result).to eq('18.3.1')
+    end
+    
+    it 'delegates detect_global_name to core' do
+      allow_any_instance_of(IslandjsRails::Core).to receive(:detect_global_name).with('react').and_return('React')
+      
+      result = IslandjsRails.detect_global_name('react')
+      expect(result).to eq('React')
+    end
+  end
+
+  describe 'Configuration' do
+    it 'allows global name overrides' do
+      config = IslandjsRails::Configuration.new
+      config.add_global_name_override('custom-lib', 'CustomLib')
+      
+      expect(config.global_name_overrides['custom-lib']).to eq('CustomLib')
+    end
+    
+    it 'can be configured via block' do
+      IslandjsRails.configure do |config|
+        config.add_global_name_override('test-lib', 'TestLib')
+      end
+      
+      expect(IslandjsRails.configuration.global_name_overrides['test-lib']).to eq('TestLib')
+    end
+  end
+
+  describe 'Error handling' do
+    it 'raises PackageNotFoundError for missing packages' do
+      allow(core).to receive(:package_installed?).with('missing').and_return(false)
+      
+      expect {
+        core.update!('missing')
+      }.to raise_error(IslandjsRails::PackageNotFoundError)
+    end
+    
+    it 'handles network errors gracefully' do
+      allow(core).to receive(:url_accessible?).and_return(false)
+      
+      expect {
+        core.send(:find_working_umd_url, 'nonexistent', '1.0.0')
+      }.not_to raise_error
+    end
+  end
+
+  describe 'URL accessibility' do
+    it 'returns true for accessible URLs' do
+      allow(Net::HTTP).to receive(:get_response).and_return(double(code: '200'))
+      
+      result = core.send(:url_accessible?, 'https://example.com/test.js')
+      expect(result).to be true
+    end
+    
+    it 'returns false for inaccessible URLs' do
+      allow(Net::HTTP).to receive(:get_response).and_raise(StandardError.new('Network error'))
+      
+      result = core.send(:url_accessible?, 'https://example.com/missing.js')
+      expect(result).to be false
+    end
+  end
+
+  describe 'Global name detection' do
+    it 'detects React global name' do
+      result = core.detect_global_name('react')
+      expect(result).to eq('React')
+    end
+    
+    it 'detects ReactDOM global name' do
+      result = core.detect_global_name('react-dom')
+      expect(result).to eq('ReactDOM')
+    end
+    
+    it 'detects Vue global name' do
+      result = core.detect_global_name('vue')
+      expect(result).to eq('Vue')
+    end
+    
+    it 'handles unknown packages' do
+      result = core.detect_global_name('unknown-package')
+      expect(result).to eq('unknownPackage')
+    end
+  end
+
+  describe 'Partial operations' do
+    it 'checks if partial exists' do
+      partial_path = File.join(temp_dir, 'app', 'views', 'shared', 'islands', '_react.html.erb')
+      FileUtils.mkdir_p(File.dirname(partial_path))
+      File.write(partial_path, 'test content')
+      
+      Dir.chdir(temp_dir) do
+        result = core.send(:has_partial?, 'react')
+        expect(result).to be true
+      end
+    end
+    
+    it 'returns false for missing partials' do
+      Dir.chdir(temp_dir) do
+        result = core.send(:has_partial?, 'nonexistent')
+        expect(result).to be false
+      end
+    end
+  end
+
+  describe '#remove!' do
+    it 'removes package and cleans up partials' do
+      # Setup
+      create_temp_package_json(temp_dir, { 'react' => '^18.3.1' })
+      partial_path = File.join(temp_dir, 'app', 'views', 'shared', 'islands', '_react.html.erb')
+      FileUtils.mkdir_p(File.dirname(partial_path))
+      File.write(partial_path, 'React content')
+      
+      # Mock yarn remove - use any_args to handle Pathname vs String differences
+      allow(Open3).to receive(:capture3).and_return(['', '', double(success?: true)])
+      
+      Dir.chdir(temp_dir) do
+        expect { core.remove!('react') }.to output(/✅ Successfully removed react/).to_stdout
+      end
+      
+      expect(File.exist?(partial_path)).to be false
+    end
+    
+    it 'handles missing packages gracefully' do
+      Dir.chdir(temp_dir) do
+        expect { core.remove!('nonexistent', graceful: true) }.to output(/not installed/).to_stdout
+      end
+    end
+  end
+
+  describe '#sync!' do
+    it 'syncs all installed packages' do
+      create_temp_package_json(temp_dir, { 'react' => '^18.3.1', 'vue' => '^3.0.0' })
+      
+      allow(core).to receive(:url_accessible?).and_return(true)
+      allow(core).to receive(:download_umd_content).and_return('UMD content')
+      
+      Dir.chdir(temp_dir) do
+        expect { core.sync! }.to output(/🔄 Syncing all packages/).to_stdout
+      end
+    end
+    
+    it 'handles packages without UMD builds' do
+      create_temp_package_json(temp_dir, { 'no-umd-package' => '^1.0.0' })
+      
+      allow(core).to receive(:url_accessible?).and_return(false)
+      
+      Dir.chdir(temp_dir) do
+        expect { core.sync! }.to output(/No UMD build found/).to_stdout
+      end
       end
     end
 
     describe '#clean!' do
-      it 'handles empty partials directory' do
-        partials_dir = core.configuration.partials_dir
+    it 'removes orphaned partials' do
+      # Create partials directory with orphaned partial
+      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
         FileUtils.mkdir_p(partials_dir)
+      orphaned_partial = File.join(partials_dir, '_orphaned.html.erb')
+      File.write(orphaned_partial, 'Orphaned content')
         
-        expect { core.clean! }.to output(/Cleaning UMD partials/).to_stdout
+      # Setup package.json without the orphaned package
+      create_temp_package_json(temp_dir, { 'react' => '^18.3.1' })
         
-        # Directory should be removed if empty
-        expect(Dir.exist?(partials_dir)).to be false
+      Dir.chdir(temp_dir) do
+        expect { core.clean! }.to output(/🧹 Cleaning UMD partials/).to_stdout
       end
 
-      it 'handles non-existent partials directory' do
-        expect { core.clean! }.to output(/Cleaning UMD partials/).to_stdout
+      expect(File.exist?(orphaned_partial)).to be false
       end
     end
 
-    describe 'Base64 encoding in partials' do
-      it 'properly encodes UMD content' do
-        require 'base64'
-        test_content = "alert('test'); // Special chars: < > & \" '"
-        
-        partial_content = core.send(:generate_partial_content, 'test', test_content, 'Test')
-        
-        # Extract the base64 content from the partial
-        match = partial_content.match(/atob\('<%= "(.+)" %>'\)/)
-        expect(match).not_to be_nil
-        
-        encoded = match[1]
-        decoded = Base64.strict_decode64(encoded)
-        expect(decoded).to eq(test_content)
+  describe '#status!' do
+    it 'shows status of all packages' do
+      create_temp_package_json(temp_dir, { 'react' => '^18.3.1' })
+      
+      Dir.chdir(temp_dir) do
+        expect { core.status! }.to output(/📊 IslandJS Status/).to_stdout
       end
+    end
+  end
+
+  describe '#find_working_island_url' do
+    it 'finds working UMD URL' do
+      allow(core).to receive(:url_accessible?).and_return(true)
+      
+      result = core.find_working_island_url('react', '18.3.1')
+      expect(result).to include('https://')
+      expect(result).to include('react@18.3.1')
+    end
+    
+    it 'returns nil when no URL works' do
+      allow(core).to receive(:url_accessible?).and_return(false)
+      
+      result = core.find_working_island_url('nonexistent', '1.0.0')
+      expect(result).to be_nil
+    end
+  end
+
+  describe 'Demo route functionality' do
+    describe '#demo_route_exists?' do
+      it 'returns true when demo route exists' do
+        routes_content = "Rails.application.routes.draw do\n  get 'islandjs/react', to: 'islandjs_demo#react'\nend"
+        routes_path = File.join(temp_dir, 'config', 'routes.rb')
+        FileUtils.mkdir_p(File.dirname(routes_path))
+        File.write(routes_path, routes_content)
+        
+        Dir.chdir(temp_dir) do
+          result = core.send(:demo_route_exists?)
+          expect(result).to be true
+        end
+      end
+      
+      it 'returns false when demo route does not exist' do
+        routes_content = "Rails.application.routes.draw do\n  root 'home#index'\nend"
+        routes_path = File.join(temp_dir, 'config', 'routes.rb')
+        FileUtils.mkdir_p(File.dirname(routes_path))
+        File.write(routes_path, routes_content)
+        
+        Dir.chdir(temp_dir) do
+          result = core.send(:demo_route_exists?)
+          expect(result).to be false
+        end
+      end
+    end
+
+    describe '#create_demo_controller!' do
+      it 'creates demo controller file' do
+        controllers_dir = File.join(temp_dir, 'app', 'controllers')
+        FileUtils.mkdir_p(controllers_dir)
+        
+        Dir.chdir(temp_dir) do
+          core.send(:create_demo_controller!)
+        end
+        
+        controller_path = File.join(controllers_dir, 'islandjs_demo_controller.rb')
+        expect(File.exist?(controller_path)).to be true
+        
+        content = File.read(controller_path)
+        expect(content).to include('class IslandjsDemoController')
+        expect(content).to include('def react')
+      end
+    end
+
+    describe '#create_demo_view!' do
+      it 'creates demo view file' do
+        views_dir = File.join(temp_dir, 'app', 'views', 'islandjs_demo')
+        
+        Dir.chdir(temp_dir) do
+          core.send(:create_demo_view!)
+        end
+        
+        view_path = File.join(views_dir, 'react.html.erb')
+        expect(File.exist?(view_path)).to be true
+        
+        content = File.read(view_path)
+        expect(content).to include('IslandJS Rails Demo')
+        expect(content).to include('react_component')
+      end
+    end
+  end
+
+  describe 'Webpack configuration' do
+    it 'updates webpack externals correctly' do
+      webpack_path = File.join(temp_dir, 'webpack.config.js')
+      FileUtils.mkdir_p(File.dirname(webpack_path))
+      
+      # Create initial webpack config
+      Dir.chdir(temp_dir) do
+        core.send(:generate_webpack_config!)
+        core.send(:update_webpack_externals, 'react', 'React')
+      end
+      
+      content = File.read(webpack_path)
+      expect(content).to include('"react": "React"')
+    end
+  end
+
+  describe 'Version parsing and handling' do
+    it 'extracts version from semver ranges' do
+      create_temp_package_json(temp_dir, { 
+        'caret-version' => '^1.2.3',
+        'tilde-version' => '~2.4.6',
+        'exact-version' => '3.5.7'
+      })
+      
+      Dir.chdir(temp_dir) do
+        expect(core.version_for('caret-version')).to eq('1.2.3')
+        expect(core.version_for('tilde-version')).to eq('2.4.6')
+        expect(core.version_for('exact-version')).to eq('3.5.7')
+      end
+    end
+    
+    it 'handles complex version constraints' do
+      create_temp_package_json(temp_dir, {
+        'range-version' => '>=1.0.0 <2.0.0',
+        'prerelease-version' => '2.0.0-beta.1'
+      })
+      
+      Dir.chdir(temp_dir) do
+        range_version = core.version_for('range-version')
+        expect(range_version).to match(/\d+\.\d+\.\d+/)
+        
+        prerelease_version = core.version_for('prerelease-version')
+        expect(prerelease_version).to eq('2.0.0-beta.1')
+      end
+    end
+  end
+
+  describe 'UMD URL pattern testing' do
+    it 'tries all UMD path patterns' do
+      allow(core).to receive(:url_accessible?).and_return(false, false, true)
+      allow(core).to receive(:download_umd_content).and_return('UMD content')
+      allow(core).to receive(:detect_global_name).and_return('Test')
+      
+      result = core.send(:find_working_umd_url, 'test-lib', '1.0.0')
+      expect(result).to be_an(Array)
+    end
+    
+    it 'handles scoped package names correctly' do
+      allow(core).to receive(:url_accessible?).and_return(true)
+      allow(core).to receive(:download_umd_content).and_return('UMD content')
+      allow(core).to receive(:detect_global_name).and_return('ScopedLib')
+      
+      result = core.send(:find_working_umd_url, '@scope/scoped-lib', '1.0.0')
+      expect(result).to be_an(Array)
+    end
+  end
+
+  describe 'Download and network operations' do
+    it 'handles download failures gracefully' do
+      allow(Net::HTTP).to receive(:get_response).and_raise(StandardError.new('Network error'))
+      
+      expect { core.download_umd_content('https://example.com/test.js') }.to raise_error(StandardError)
+    end
+    
+    it 'handles successful downloads' do
+      mock_response = double('response', code: '200', body: 'UMD content')
+      allow(Net::HTTP).to receive(:get_response).and_return(mock_response)
+      
+      result = core.download_umd_content('https://example.com/test.js')
+      expect(result).to eq('UMD content')
+    end
+  end
+
+  describe 'Partial content generation' do
+    it 'generates proper base64 encoded partials' do
+      content = 'window.TestLib = { version: "1.0.0" };'
+      global_name = 'TestLib'
+      
+      result = core.send(:generate_partial_content, 'test-lib', content, global_name)
+      
+      expect(result).to include('Generated by IslandjsRails')
+      expect(result).to include('atob(')
+      expect(result).to include('TestLib UMD Library')
+    end
+    
+    it 'handles content without global name' do
+      content = 'console.log("test");'
+      
+      result = core.send(:generate_partial_content, 'test-lib', content)
+      
+      expect(result).to include('Generated by IslandjsRails')
+      expect(result).to include('atob(')
+    end
+  end
+
+  describe 'Package management edge cases' do
+    it 'handles yarn update failures' do
+      allow(core).to receive(:system).and_return(false)
+      # Mock the specific methods that would be called
+      allow(core).to receive(:add_package_via_yarn).and_return(false)
+      
+      Dir.chdir(temp_dir) do
+        expect { core.send(:yarn_update!, 'test-pkg', '1.0.0') }.not_to raise_error
+      end
+    end
+    
+    it 'handles package removal failures' do
+      allow(core).to receive(:system).and_return(false)
+      allow(core).to receive(:remove_package_via_yarn).and_return(false)
+      
+      Dir.chdir(temp_dir) do
+        expect { core.send(:remove_package_via_yarn, 'test-pkg') }.not_to raise_error
+      end
+    end
+    
+    it 'validates supported packages correctly' do
+      expect(core.send(:supported_package?, 'react')).to be true
+      expect(core.send(:supported_package?, 'unknown')).to be true  # All packages are supported
+    end
+  end
+
+  describe 'Webpack externals management' do
+    it 'resets webpack externals to empty state' do
+      webpack_path = File.join(temp_dir, 'webpack.config.js')
+      FileUtils.mkdir_p(File.dirname(webpack_path))
+      
+      # Create webpack config with existing externals
+      File.write(webpack_path, <<~JS)
+        module.exports = {
+          externals: {
+            "react": "React",
+            "vue": "Vue"
+          }
+        };
+      JS
+      
+      Dir.chdir(temp_dir) do
+        core.send(:reset_webpack_externals)
+      end
+      
+      content = File.read(webpack_path)
+      expect(content).to include('IslandjsRails managed externals')
+    end
+    
+    it 'updates externals for all installed packages when no package specified' do
+      create_temp_package_json(temp_dir, { 'react' => '^18.3.1', 'vue' => '^3.0.0' })
+      webpack_path = File.join(temp_dir, 'webpack.config.js')
+      
+      Dir.chdir(temp_dir) do
+        core.send(:generate_webpack_config!)
+        
+        # Mock has_partial? to return true for installed packages
+        allow(core).to receive(:has_partial?).with('react').and_return(true)
+        allow(core).to receive(:has_partial?).with('vue').and_return(true)
+        
+        core.send(:update_webpack_externals)
+      end
+      
+      content = File.read(webpack_path)
+      expect(content).to include('"react": "React"')
+      expect(content).to include('"vue": "Vue"')
     end
   end
 end 

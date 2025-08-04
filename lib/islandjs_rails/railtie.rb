@@ -4,14 +4,74 @@ module IslandjsRails
   class Railtie < Rails::Railtie
     railtie_name :islandjs_rails
 
-    rake_tasks do
-      load File.expand_path('tasks.rb', __dir__)
-    end
-
-    initializer 'islandjs_rails.helpers' do
-      ActiveSupport.on_load(:action_view) do
+    # Add helpers to ActionView
+    initializer "islandjs_rails.view_helpers" do
+      ActiveSupport.on_load :action_view do
         include IslandjsRails::RailsHelpers
       end
+    end
+
+    # Rails 8 asset compilation integration
+    initializer "islandjs_rails.asset_compilation" do |app|
+      if app.config.respond_to?(:assets) && app.config.assets.respond_to?(:precompile)
+        # Add islands assets to precompile list
+        app.config.assets.precompile += %w[
+          islands_bundle.js
+          islands_manifest.json
+          islands/**/*.js
+        ]
+      end
+    end
+
+    # CSP configuration for Rails 8
+    initializer "islandjs_rails.content_security_policy" do |app|
+      if app.config.respond_to?(:content_security_policy)
+        app.config.content_security_policy do |policy|
+          # Allow islands assets and UMD libraries
+          if Rails.env.development?
+            policy.script_src :self, :unsafe_inline, 'https://unpkg.com', 'https://cdn.jsdelivr.net'
+          else
+            policy.script_src :self, 'https://unpkg.com', 'https://cdn.jsdelivr.net'
+          end
+          
+          # Connect-src for potential API calls from components
+          policy.connect_src :self
+        end
+        
+        # Add nonce support for production inline scripts
+        unless Rails.env.development?
+          app.config.content_security_policy_nonce_generator = -> request { SecureRandom.base64(16) }
+        end
+      end
+    end
+
+    # Import maps integration for Rails 8
+    initializer "islandjs_rails.import_maps" do |app|
+      if defined?(Importmap)
+        # Register islands bundle with import maps if available
+        app.config.to_prepare do
+          if Rails.application.importmap&.respond_to?(:pin)
+            Rails.application.importmap.pin "islands", to: "islands_bundle.js"
+          end
+        end
+      end
+    end
+
+    # Propshaft integration for Rails 8 asset pipeline
+    initializer "islandjs_rails.propshaft" do |app|
+      if defined?(Propshaft)
+        app.config.to_prepare do
+          # Ensure islands assets are included in Propshaft manifest
+          if Rails.application.config.assets.respond_to?(:paths)
+            Rails.application.config.assets.paths << Rails.root.join("public/islands")
+          end
+        end
+      end
+    end
+
+    # Rake tasks for asset compilation
+    rake_tasks do
+      load "islandjs_rails/tasks.rb"
     end
 
     # Development-only warnings and checks

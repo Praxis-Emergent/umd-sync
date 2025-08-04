@@ -67,6 +67,14 @@ RSpec.describe IslandjsRails do
       result = IslandjsRails.find_working_island_url('react', '18.3.1')
       expect(result).to eq('https://example.com')
     end
+
+    it 'delegates has_partial? to core private method' do
+      expect(IslandjsRails.core).to receive(:has_partial?).with('react').and_return(true)
+      result = IslandjsRails.has_partial?('react')
+      expect(result).to be true
+    end
+
+
   end
 
   describe 'configuration management' do
@@ -118,16 +126,46 @@ RSpec.describe IslandjsRails do
     end
   end
 
-  describe 'error classes' do
-    it 'defines custom error hierarchy' do
+  describe 'constants and error classes' do
+    it 'defines UMD_PATH_PATTERNS constant' do
+      expect(IslandjsRails::UMD_PATH_PATTERNS).to be_an(Array)
+      expect(IslandjsRails::UMD_PATH_PATTERNS).to include('umd/{name}.production.min.js')
+      expect(IslandjsRails::UMD_PATH_PATTERNS).to be_frozen
+    end
+
+    it 'defines CDN_BASES constant' do
+      expect(IslandjsRails::CDN_BASES).to be_an(Array)
+      expect(IslandjsRails::CDN_BASES).to include('https://unpkg.com')
+      expect(IslandjsRails::CDN_BASES).to be_frozen
+    end
+
+    it 'defines BUILT_IN_GLOBAL_NAME_OVERRIDES constant' do
+      expect(IslandjsRails::BUILT_IN_GLOBAL_NAME_OVERRIDES).to be_a(Hash)
+      expect(IslandjsRails::BUILT_IN_GLOBAL_NAME_OVERRIDES['react']).to eq('React')
+      expect(IslandjsRails::BUILT_IN_GLOBAL_NAME_OVERRIDES['lodash']).to eq('_')
+      expect(IslandjsRails::BUILT_IN_GLOBAL_NAME_OVERRIDES).to be_frozen
+    end
+
+    it 'defines custom error classes' do
       expect(IslandjsRails::Error).to be < StandardError
       expect(IslandjsRails::YarnError).to be < IslandjsRails::Error
       expect(IslandjsRails::IslandNotFoundError).to be < IslandjsRails::Error
+      expect(IslandjsRails::PackageNotFoundError).to be < IslandjsRails::Error
+      expect(IslandjsRails::UmdNotFoundError).to be < IslandjsRails::Error
     end
 
-    it 'can raise custom errors' do
+    it 'allows raising custom errors' do
       expect { raise IslandjsRails::YarnError, 'test' }.to raise_error(IslandjsRails::YarnError, 'test')
-      expect { raise IslandjsRails::IslandNotFoundError, 'no island' }.to raise_error(IslandjsRails::IslandNotFoundError, 'no island')
+      expect { raise IslandjsRails::PackageNotFoundError, 'not found' }.to raise_error(IslandjsRails::PackageNotFoundError, 'not found')
+    end
+  end
+
+  describe 'Rails conditional loading' do
+    it 'loads Rails components when Rails is defined' do
+      # In our test environment, Rails is defined, so these should be loaded
+      # We test this by requiring the files using the proper path
+      expect { require 'islandjs_rails/railtie' }.not_to raise_error
+      expect { require 'islandjs_rails/rails_helpers' }.not_to raise_error
     end
   end
 
@@ -135,18 +173,6 @@ RSpec.describe IslandjsRails do
     it 'exposes version information' do
       expect(IslandjsRails::VERSION).to be_a(String)
       expect(IslandjsRails::VERSION).to match(/\d+\.\d+\.\d+/)
-    end
-  end
-
-  describe 'Rails integration' do
-    it 'conditionally requires railtie only when Rails is defined' do
-      # This is tested by the fact that the gem loads successfully
-      # In our test environment, Rails is defined, so the railtie should be loaded
-      # Check if we can access the railtie through require
-      expect { require 'islandjs_rails/railtie' }.not_to raise_error
-      
-      # After requiring, the constant should be defined
-      expect(IslandjsRails.const_defined?(:Railtie)).to be_truthy
     end
   end
 

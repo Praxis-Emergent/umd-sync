@@ -131,5 +131,11 @@ module IslandjsRails
     def find_working_island_url(package_name, version)
       core.find_working_island_url(package_name, version)
     end
+
+    def has_partial?(package_name)
+      partial_name = package_name.gsub(/[@\/]/, '_').gsub(/-/, '_')
+      partial_path = Rails.root.join('app', 'views', 'shared', 'islands', "_#{partial_name}.html.erb")
+      File.exist?(partial_path)
+    end
   end
 end

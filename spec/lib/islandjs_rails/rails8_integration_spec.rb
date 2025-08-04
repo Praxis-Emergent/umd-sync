@@ -66,15 +66,21 @@ RSpec.describe 'Rails 8 Integration' do
       expect(result).to include("addEventListener('turbo:before-cache'")
       expect(result).to include("addEventListener('turbo:render'")
       
-      # Should use Rails 8 compatible mounting
-      expect(result).to include('window.ReactDOM.createRoot')
+      # Should use modern React 18 mounting
+      expect(result).to include('ReactDOM.createRoot')
       expect(result).to include('container._reactRoot')
+      
+      # Should include sessionStorage for secure state management
+      expect(result).to include('IslandStateManager')
+      expect(result).to include('sessionStorage')
     end
     
     it 'uses modern namespace convention' do
       result = view_context.react_component('TestComponent', {})
       
-      expect(result).to include('window.islandjsRails.TestComponent')
+      # Should reference the namespace and component correctly
+      expect(result).to include('window.islandjsRails')
+      expect(result).to include('namespace.TestComponent')
     end
   end
 

@@ -169,6 +169,59 @@ module IslandjsRails
           // HelloWorld
         };
 
+        // Turbo Cache Sync Utilities
+        window.IslandjsRails = window.IslandjsRails || {};
+
+        // React hook for syncing component state with Turbo cache
+        window.IslandjsRails.useTurboCacheSync = function(state, islandId) {
+          if (typeof React === 'undefined') return;
+          
+          const { useEffect } = React;
+          
+          useEffect(() => {
+            if (!islandId) return;
+            
+            const container = document.getElementById(islandId);
+            if (!container) return;
+            
+            // Sync state to DOM for Turbo cache preservation
+            const syncState = () => {
+              container.dispatchEvent(new CustomEvent('islandjs:state-update', {
+                detail: { state }
+              }));
+            };
+            
+            // Sync immediately and on state changes
+            syncState();
+            
+            return () => {
+              // Cleanup if needed
+            };
+          }, [state, islandId]);
+        };
+
+        // Utility function for non-hook usage (class components, vanilla JS)
+        window.IslandjsRails.setupTurboStateSync = function(getState, islandId) {
+          if (!islandId) return;
+          
+          const container = document.getElementById(islandId);
+          if (!container) return;
+          
+          const syncState = () => {
+            const state = typeof getState === 'function' ? getState() : getState;
+            container.dispatchEvent(new CustomEvent('islandjs:state-update', {
+              detail: { state }
+            }));
+          };
+          
+          return {
+            sync: syncState,
+            cleanup: () => {
+              // Cleanup logic if needed
+            }
+          };
+        };
+
         console.log('🏝️ IslandJS Rails loaded successfully!');
       JS
     end
@@ -416,10 +469,28 @@ module IslandjsRails
       package_data = package_json
       return [] unless package_data
       
+      # Only process dependencies, not devDependencies (build tools)
       dependencies = package_data.dig('dependencies') || {}
-      dev_dependencies = package_data.dig('devDependencies') || {}
       
-      (dependencies.keys + dev_dependencies.keys).uniq
+      # Filter out known build tools and development packages
+      build_tools = [
+        'webpack', 'webpack-cli', 'webpack-dev-server', 'webpack-manifest-plugin',
+        'babel-loader', '@babel/core', '@babel/preset-env', '@babel/preset-react',
+        'terser-webpack-plugin', 'css-loader', 'style-loader', 'file-loader',
+        'url-loader', 'html-webpack-plugin', 'mini-css-extract-plugin',
+        'eslint', 'prettier', 'jest', 'testing-library', '@testing-library',
+        'typescript', 'ts-loader', 'sass-loader', 'postcss-loader',
+        'autoprefixer', 'tailwindcss', 'vite', 'rollup', 'parcel'
+      ]
+      
+      dependencies.keys.reject do |package_name|
+        # Skip build tools
+        build_tools.any? { |tool| package_name.include?(tool) } ||
+        # Skip packages starting with @types/ (TypeScript definitions)
+        package_name.start_with?('@types/') ||
+        # Skip packages ending with -loader, -plugin, -cli (build tools)
+        package_name.end_with?('-loader', '-plugin', '-cli')
+      end
     end
 
     def supported_package?(package_name)
@@ -548,6 +619,8 @@ module IslandjsRails
       JS
       
       File.write(configuration.webpack_config_path, webpack_content)
+    rescue Errno::EACCES, Errno::ENOENT => e
+      puts "  ⚠️  Warning: Could not create webpack.config.js: #{e.message}"
     end
 
     def url_accessible?(url)
@@ -572,15 +645,15 @@ module IslandjsRails
       
       content = File.read(webpack_config_path)
       
-      externals_block = <<~JS
+      externals_block = <<~JS.chomp
       externals: {
         // IslandjsRails managed externals - do not edit manually
-      },
+      }
       JS
       
       updated_content = content.gsub(
         /externals:\s*\{[^}]*\}(?:,)?/m,
-        externals_block.chomp
+        externals_block
       )
       
       File.write(webpack_config_path, updated_content)
@@ -594,9 +667,16 @@ module IslandjsRails
       content = File.read(webpack_config_path)
       
       externals = {}
+      
+      if package_name && global_name
+        # Add specific package
+        externals[package_name] = global_name
+      else
+        # Add all installed packages with partials
       installed_packages.each do |pkg|
-        next unless has_partial?(pkg)
+          next unless has_partial?(pkg)
         externals[pkg] = get_global_name_for_package(pkg)
+        end
       end
       
       externals_lines = externals.map { |pkg, global| "    \"#{pkg}\": \"#{global}\"" }

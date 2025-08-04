@@ -14,9 +14,7 @@ RSpec.describe IslandjsRails::Railtie do
 
   describe 'helper integration' do
     it 'includes IslandjsRails::RailsHelpers in ActionView' do
-      # The railtie defines an initializer that includes helpers
-      # We can test that the initializer exists
-      initializer = IslandjsRails::Railtie.initializers.find { |i| i.name == 'islandjs_rails.helpers' }
+      initializer = IslandjsRails::Railtie.initializers.find { |i| i.name == 'islandjs_rails.view_helpers' }
       expect(initializer).to be_present
     end
   end
@@ -47,11 +45,11 @@ RSpec.describe IslandjsRails::Railtie do
 
   describe 'initializers' do
     it 'has initializers defined' do
-      expect(IslandjsRails::Railtie.initializers.count).to eq(2)
+      expect(IslandjsRails::Railtie.initializers.count).to eq(6)
     end
 
     it 'defines helpers initializer' do
-      helpers_init = IslandjsRails::Railtie.initializers.find { |i| i.name == 'islandjs_rails.helpers' }
+      helpers_init = IslandjsRails::Railtie.initializers.find { |i| i.name == 'islandjs_rails.view_helpers' }
       expect(helpers_init).to be_present
     end
 
