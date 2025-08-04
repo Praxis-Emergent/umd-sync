@@ -213,9 +213,9 @@ RSpec.describe IslandjsRails::RailsHelpers do
     it 'handles empty props' do
       result = view_context.react_component('EmptyComponent', {})
       
-      expect(result).to include('id="react-empty-component"')
-      expect(result).to include('const props = {};')
-    end
+      expect(result).to match(/id="react-empty-component-[a-f0-9]{8}"/)
+      expect(result).to include('const props = { containerId:')
+      expect(result).to include(x27data-initial-state="{}"x27)    end
 
     it 'supports custom namespaces' do
       result = view_context.react_component('CustomComponent', {}, {
@@ -229,8 +229,8 @@ RSpec.describe IslandjsRails::RailsHelpers do
       result1 = view_context.react_component('Component1', {})
       result2 = view_context.react_component('Component2', {})
       
-      expect(result1).to include('id="react-component1"')
-      expect(result2).to include('id="react-component2"')
+      expect(result1).to match(/id="react-component1-[a-f0-9]{8}"/)
+      expect(result2).to match(/id="react-component2-[a-f0-9]{8}"/)
     end
   end
 
@@ -251,10 +251,10 @@ RSpec.describe IslandjsRails::RailsHelpers do
     it 'generates React component container and script' do
       result = view_context.react_component('MyComponent', props)
       
-      expect(result).to include('id="react-my-component"')
+      expect(result).to match(/id="react-my-component-[a-f0-9]{8}"/)
       expect(result).to include('data-user-id="123"')
       expect(result).to include('data-theme="dark"')
-      expect(result).to include('window.islandjsRails.MyComponent')
+      expect(result).to include(x27data-initial-state=x27)      expect(result).to include('window.islandjsRails.MyComponent')
       expect(result).to include('function mountMyComponent()')
       expect(result).to include('function cleanupMyComponent()')
     end
