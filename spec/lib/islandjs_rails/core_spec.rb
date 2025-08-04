@@ -216,8 +216,8 @@ RSpec.describe IslandjsRails::Core do
 
     it 'shows status of packages' do
       expect { core.status! }.to output(/IslandjsRails Status/).to_stdout
-      expect { core.status! }.to output(/✅ react@18.3.1/).to_stdout
-      expect { core.status! }.to output(/❌ lodash@4.17.21/).to_stdout
+      expect { core.status! }.to output(/✅ react@18.3.1 \(vendor ready\)/).to_stdout
+      expect { core.status! }.to output(/❌ lodash@4.17.21 \(missing vendor\)/).to_stdout
     end
   end
 
@@ -563,13 +563,19 @@ RSpec.describe IslandjsRails::Core do
     it 'calls underlying install methods' do
       allow(core).to receive(:package_installed?).and_return(false)
       allow(core).to receive(:add_package_via_yarn)
-      allow(core).to receive(:install_package!)
       allow(core).to receive(:react_ecosystem_complete?).and_return(false)
+      
+      # Mock vendor manager
+      vendor_manager = double('VendorManager')
+      allow(IslandjsRails).to receive(:vendor_manager).and_return(vendor_manager)
+      allow(vendor_manager).to receive(:install_package!).and_return(true)
+      allow(core).to receive(:detect_global_name).and_return('React')
+      allow(core).to receive(:update_webpack_externals)
       
       expect { core.install!('react', '18.3.1') }.to output(/Installing UMD package/).to_stdout
       
       expect(core).to have_received(:add_package_via_yarn).with('react', '18.3.1')
-      expect(core).to have_received(:install_package!).with('react', '18.3.1')
+      expect(vendor_manager).to have_received(:install_package!).with('react', '18.3.1')
     end
 
     it 'activates React scaffolding when ecosystem becomes complete' do
@@ -577,8 +583,14 @@ RSpec.describe IslandjsRails::Core do
       create_temp_package_json(temp_dir, { 'react-dom' => '^18.3.1' })
       
       allow(core).to receive(:add_package_via_yarn)
-      allow(core).to receive(:install_package!)
       allow(core).to receive(:activate_react_scaffolding!)
+      
+      # Mock vendor manager
+      vendor_manager = double('VendorManager')
+      allow(IslandjsRails).to receive(:vendor_manager).and_return(vendor_manager)
+      allow(vendor_manager).to receive(:install_package!).and_return(true)
+      allow(core).to receive(:detect_global_name).and_return('React')
+      allow(core).to receive(:update_webpack_externals)
       
       # First call: ecosystem incomplete
       allow(core).to receive(:react_ecosystem_complete?).and_return(false, true)

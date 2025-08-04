@@ -74,18 +74,20 @@ RSpec.describe IslandjsRails::RailsHelpers do
       end
     end
     
-    it 'renders available UMD partials' do
+    it 'renders vendor UMD partial' do
+      # Mock the vendor UMD partial to exist
+      allow(view_context).to receive(:render).with(partial: "shared/islands/vendor_umd").and_return('<script src="/islands/vendor/react-18.3.1.min.js"></script>')
+      
       result = view_context.island_partials
       
-      expect(result).to include('React UMD content')
+      expect(result).to include('/islands/vendor/react-18.3.1.min.js')
     end
     
-    it 'includes warning comments for missing partials in development' do
+    it 'includes warning comments for missing vendor partial in development' do
+      # Don't mock render - let it fail naturally
       result = view_context.island_partials
       
-      expect(result).to include('Missing partial for react-dom')
-      expect(result).to include('Missing partial for lodash')
-      expect(result).to include('rails islandjs:sync')
+      expect(result).to include('Vendor UMD partial missing. Run: rails islandjs:init')
     end
   end
 
