@@ -156,23 +156,6 @@ module IslandjsRails
       puts "✓ npm and yarn are available"
     end
 
-    def generate_index_js_template
-      <<~JS
-        // IslandJS Rails - Main entry point
-        // This file is the webpack entry point for your JavaScript islands
-
-        // Example React component imports (uncomment when you have components)
-        // import HelloWorld from './components/HelloWorld.jsx';
-
-        // Mount components to the global islandjsRails namespace
-        window.islandjsRails = {
-          // HelloWorld
-        };
-
-        console.log('🏝️ IslandJS Rails loaded successfully!');
-      JS
-    end
-
     def ensure_package_json!
       if File.exist?(configuration.package_json_path)
         puts "✓ package.json already exists"
@@ -226,21 +209,27 @@ module IslandjsRails
     def create_scaffolded_structure!
       puts "🏗️  Creating scaffolded structure..."
       
-      js_dir = File.join(Dir.pwd, 'app', 'javascript', 'islandjs_rails')
+      js_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands')
       
       FileUtils.mkdir_p(js_dir)
       
       index_js_path = File.join(js_dir, 'index.js')
       
       unless File.exist?(index_js_path)
-        index_content = generate_index_js_template
-        File.write(index_js_path, index_content)
-        puts "✓ Created app/javascript/islandjs_rails/index.js"
+        # Copy from gem's template file instead of hardcoded string
+        gem_template_path = File.join(__dir__, '..', '..', 'app', 'javascript', 'islands', 'index.js')
+        
+        if File.exist?(gem_template_path)
+          FileUtils.cp(gem_template_path, index_js_path)
+          puts "✓ Created app/javascript/islands/index.js"
+        else
+          puts "⚠️  Template file not found: #{gem_template_path}"
+        end
       else
-        puts "✓ app/javascript/islandjs_rails/index.js already exists"
+        puts "✓ app/javascript/islands/index.js already exists"
       end
       
-      components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islandjs_rails', 'components')
+      components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands', 'components')
       FileUtils.mkdir_p(components_dir)
       
       gitkeep_path = File.join(components_dir, '.gitkeep')
@@ -505,7 +494,7 @@ module IslandjsRails
         module.exports = {
           mode: isProduction ? 'production' : 'development',
           entry: {
-            islands_bundle: ['./app/javascript/islandjs_rails/index.js']
+            islands_bundle: ['./app/javascript/islands/index.js']
           },
           externals: {
             // IslandjsRails managed externals - do not edit manually

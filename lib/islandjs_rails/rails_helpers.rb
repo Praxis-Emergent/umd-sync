@@ -60,7 +60,7 @@ module IslandjsRails
       if options[:container_id]
         component_id = options[:container_id]
       else
-        component_id = "react-#{component_name.gsub(/([A-Z])/, '-\1').downcase.gsub(/^-/, '')}"
+        component_id = "react-#{component_name.gsub(/([A-Z])/, '-\1').downcase.gsub(/^-/, '')}-#{SecureRandom.hex(4)}"
       end
       
       # Extract options
@@ -68,7 +68,10 @@ module IslandjsRails
       css_class = options[:class] || ''
       namespace = options[:namespace] || 'window.islandjsRails'
       
-      # Generate data attributes from props with proper HTML escaping
+      # For turbo-cache compatibility, store initial state as JSON in data attribute
+      initial_state_json = props.to_json
+      
+      # Generate data attributes from props with proper HTML escaping (keeping for backward compatibility)
       data_attrs = props.map do |key, value|
         # Convert both camelCase and snake_case to kebab-case
         attr_name = key.to_s.gsub(/([A-Z])/, '-\1').gsub('_', '-').downcase.gsub(/^-/, '')
@@ -81,9 +84,6 @@ module IslandjsRails
         "data-#{attr_name}=\"#{attr_value}\""
       end.join(' ')
       
-      # Prepare props as JSON
-      props_json = props.to_json
-      
       # Generate optional chaining syntax for custom namespaces
       namespace_with_optional = if namespace != 'window.islandjsRails' && !namespace.include?('?')
         namespace + '?'
@@ -91,13 +91,17 @@ module IslandjsRails
         namespace
       end
       
-      # Generate the mounting script
-      mount_script = generate_react_mount_script(component_name, component_id, props_json, namespace, namespace_with_optional)
+      # Generate the mounting script - pass container_id as the only prop for turbo-cache pattern
+      mount_script = generate_react_mount_script(component_name, component_id, namespace, namespace_with_optional)
       
-      # Return the container div with data attributes and script
+      # Return the container div with data-initial-state and script
       data_part = data_attrs.empty? ? '' : " #{data_attrs}"
       class_part = css_class.empty? ? '' : " class=\"#{css_class}\""
-      container_html = "<#{tag_name} id=\"#{component_id}\"#{class_part}#{data_part}></#{tag_name}>"
+      
+      # Add data-initial-state for turbo-cache compatibility
+      initial_state_attr = " data-initial-state=\"#{initial_state_json.gsub('"', '&quot;')}\""
+      
+      container_html = "<#{tag_name} id=\"#{component_id}\"#{class_part}#{data_part}#{initial_state_attr}></#{tag_name}>"
       
       html_safe_string("#{container_html}\n#{mount_script}")
     end
@@ -241,7 +245,7 @@ module IslandjsRails
     end
 
     # Generate React component mounting script with Turbo compatibility
-    def generate_react_mount_script(component_name, component_id, props_json, namespace, namespace_with_optional)
+    def generate_react_mount_script(component_name, component_id, namespace, namespace_with_optional)
       <<~JAVASCRIPT
         <script>
           (function() {
@@ -259,7 +263,7 @@ module IslandjsRails
               const container = document.getElementById('#{component_id}');
               if (!container) return;
               
-              const props = #{props_json};
+              const props = { containerId: '#{component_id}' };
               const element = React.createElement(#{namespace_with_optional}.#{component_name}, props);
               
               // Use React 18 createRoot if available, fallback to React 17 render

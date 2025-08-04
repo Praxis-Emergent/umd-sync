@@ -7,7 +7,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 module.exports = {
   mode: isProduction ? 'production' : 'development',
   entry: {
-    islands_bundle: ['./app/javascript/islandjs/index.js']
+    islands_bundle: ['./app/javascript/islands/index.js']
   },
   externals: {
   // IslandJS managed externals - do not edit manually
