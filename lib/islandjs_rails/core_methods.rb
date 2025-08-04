@@ -56,7 +56,7 @@ module IslandjsRails
       return false unless File.exist?(routes_file)
       
       content = File.read(routes_file)
-      content.include?('islandjs/react') || content.include?('islandjs_demo')
+      content.include?('islandjs_demo') || content.include?('islandjs/react') || content.include?("get 'islandjs'")
     end
 
     def create_demo_route!
@@ -73,6 +73,10 @@ module IslandjsRails
       
       controller_content = <<~RUBY
         class IslandjsDemoController < ApplicationController
+          def index
+            # IslandJS Rails demo homepage
+          end
+          
           def react
             # Demo route for showcasing IslandJS React integration
           end
@@ -119,25 +123,42 @@ module IslandjsRails
 
     def add_demo_route!
       routes_file = File.join(Dir.pwd, 'config', 'routes.rb')
-      
-      unless File.exist?(routes_file)
-        puts "  ⚠️  Routes file not found, skipping route addition"
-        return
-      end
+      return unless File.exist?(routes_file)
       
       content = File.read(routes_file)
       
-      # Find a good place to insert the route (before the final 'end')
-      if match = content.match(/^(\s*)end\s*$/)
-        indent = match[1] # Capture the existing indentation
-        route_lines = "#{indent}# IslandJS demo route (you can remove this)\n#{indent}get 'islandjs/react', to: 'islandjs_demo#react'\n"
+      # Check if root route already exists
+      has_root_route = content.include?('root ') || content.match(/^\s*root\s/)
+      
+      # Find the Rails.application.routes.draw block
+      if content.match(/Rails\.application\.routes\.draw do\s*$/)
+        # Determine indentation
+        indent = content.match(/^(\s*)Rails\.application\.routes\.draw do\s*$/)[1]
         
-        # Insert before the last 'end' with proper indentation
-        updated_content = content.sub(/^(\s*)end\s*$/, "#{route_lines}\n\\1end")
+        # Build route lines
+        route_lines = "#{indent}# IslandJS demo routes (you can remove these)\n"
+        
+        # Add root route if none exists
+        unless has_root_route
+          route_lines += "#{indent}root 'islandjs_demo#index'\n"
+        end
+        
+        # Add demo routes
+        route_lines += "#{indent}get 'islandjs', to: 'islandjs_demo#index'\n"
+        route_lines += "#{indent}get 'islandjs/react', to: 'islandjs_demo#react'\n"
+        
+        # Add the routes after the draw line
+        updated_content = content.sub(
+          /(Rails\.application\.routes\.draw do\s*$)/,
+          "\\1\n#{route_lines}"
+        )
+        
         File.write(routes_file, updated_content)
-        puts "  ✓ Added route to config/routes.rb"
-      else
-        puts "  ⚠️  Could not automatically add route. Please add manually:"
+        puts "  ✓ Added demo routes to config/routes.rb:"
+        unless has_root_route
+          puts "     root 'islandjs_demo#index' (set as homepage)"
+        end
+        puts "     get 'islandjs', to: 'islandjs_demo#index'"
         puts "     get 'islandjs/react', to: 'islandjs_demo#react'"
       end
     end
