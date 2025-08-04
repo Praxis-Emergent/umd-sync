@@ -334,7 +334,7 @@ module IslandjsRails
     end
 
     def uncomment_react_imports!
-      index_js_path = File.join(Dir.pwd, 'app', 'javascript', 'islandjs_rails', 'index.js')
+      index_js_path = File.join(Dir.pwd, 'app', 'javascript', 'islands', 'index.js')
       return unless File.exist?(index_js_path)
       
       content = File.read(index_js_path)
@@ -354,7 +354,7 @@ module IslandjsRails
     end
 
     def create_hello_world_component!
-      components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islandjs_rails', 'components')
+      components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands', 'components')
       FileUtils.mkdir_p(components_dir)
       
       hello_world_path = File.join(components_dir, 'HelloWorld.jsx')

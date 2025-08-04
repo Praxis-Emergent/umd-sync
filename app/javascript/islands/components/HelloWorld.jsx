@@ -44,7 +44,7 @@ const HelloWorld = ({ containerId }) => {
       fontFamily: 'system-ui, sans-serif'
     }}>
       <h2 style={{ color: '#4F46E5', margin: '0 0 16px 0' }}>
-        🏝️ IslandJS Rails (Turbo-Cache Compatible)
+        🏝️ React + IslandjsRails (Turbo-Cache Compatible)
       </h2>
       <p style={{ margin: '0 0 16px 0', fontSize: '18px' }}>
         {message}

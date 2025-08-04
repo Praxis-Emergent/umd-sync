@@ -226,7 +226,7 @@ module IslandjsRails
     def create_scaffolded_structure!
       puts "🏗️  Creating scaffolded structure..."
       
-      js_dir = File.join(Dir.pwd, 'app', 'javascript', 'islandjs_rails')
+      js_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands')
       
       FileUtils.mkdir_p(js_dir)
       
@@ -235,12 +235,12 @@ module IslandjsRails
       unless File.exist?(index_js_path)
         index_content = generate_index_js_template
         File.write(index_js_path, index_content)
-        puts "✓ Created app/javascript/islandjs_rails/index.js"
+        puts "✓ Created app/javascript/islands/index.js"
       else
-        puts "✓ app/javascript/islandjs_rails/index.js already exists"
+        puts "✓ app/javascript/islands/index.js already exists"
       end
       
-      components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islandjs_rails', 'components')
+      components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands', 'components')
       FileUtils.mkdir_p(components_dir)
       
       gitkeep_path = File.join(components_dir, '.gitkeep')
@@ -505,7 +505,7 @@ module IslandjsRails
         module.exports = {
           mode: isProduction ? 'production' : 'development',
           entry: {
-            islands_bundle: ['./app/javascript/islandjs_rails/index.js']
+            islands_bundle: ['./app/javascript/islands/index.js']
           },
           externals: {
             // IslandjsRails managed externals - do not edit manually

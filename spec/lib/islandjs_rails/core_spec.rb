@@ -200,9 +200,9 @@ RSpec.describe IslandjsRails::Core do
       expect { core.init! }.to output(/Generated webpack.config.js/).to_stdout
       
       expect(File.exist?(webpack_path)).to be true
-      content = File.read(webpack_path)
-      expect(content).to include('islandjs_rails')
-      expect(content).to include('./app/javascript/islandjs_rails/index.js')
+              content = File.read(webpack_path)
+        expect(content).to include('islands')
+        expect(content).to include('./app/javascript/islands/index.js')
     end
   end
 
@@ -654,7 +654,7 @@ RSpec.describe IslandjsRails::Core do
     end
 
     describe '#uncomment_react_imports!' do
-      let(:index_js_path) { File.join(temp_dir, 'app', 'javascript', 'islandjs_rails/index.js') }
+      let(:index_js_path) { File.join(temp_dir, 'app', 'javascript', 'islands/index.js') }
       
       before do
         FileUtils.mkdir_p(File.dirname(index_js_path))
@@ -700,7 +700,7 @@ RSpec.describe IslandjsRails::Core do
     end
 
     describe '#create_hello_world_component!' do
-      let(:components_dir) { File.join(temp_dir, 'app', 'javascript', 'islandjs_rails', 'components') }
+      let(:components_dir) { File.join(temp_dir, 'app', 'javascript', 'islands', 'components') }
       let(:hello_world_path) { File.join(components_dir, 'HelloWorld.jsx') }
       
       before do
@@ -880,7 +880,7 @@ RSpec.describe IslandjsRails::Core do
     end
 
     describe '#create_scaffolded_structure!' do
-      let(:islandjs_dir) { File.join(temp_dir, 'app', 'javascript', 'islandjs_rails') }
+      let(:islandjs_dir) { File.join(temp_dir, 'app', 'javascript', 'islands') }
       let(:components_dir) { File.join(islandjs_dir, 'components') }
       
       it 'creates directory structure and files' do
