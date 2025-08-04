@@ -16,8 +16,7 @@ ESM might be "the future", but UMD is "the forever" because it just works everyw
 ### Perfect for Rails 8
 IslandJS Rails aligns perfectly with **Rails 8's philosophy** of simplicity and convention over configuration:
 
-- **Asset Pipeline Simplification**: Rails 8 streamlined assets - IslandJS Rails fits seamlessly
-- **Zero Webpack Complexity**: No complex bundler configs, just modern JavaScript  
+- **Asset Pipeline Simplification**: Rails 8 streamlined assets - IslandJS Rails fits seamlessly 
 - **Hotwire + React Islands**: The sweet spot for Rails 8 frontend development
 - **Fast Development & Deployment**: Instant builds, no library rebundling
 
