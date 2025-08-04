@@ -340,7 +340,8 @@ The `react_component` helper automatically:
 1. **Stores initial props** as JSON in `data-initial-state` attributes
 2. **Generates unique container IDs** for each component instance  
 3. **Passes only the container ID** to the React component
-4. **Persists state changes** back to the data attribute on `turbo:before-cache`
+
+This allows React components to persist state changes** back to the data attribute before turbo caches the page.
 
 ### Example: Turbo-Compatible Component
 
@@ -357,7 +358,7 @@ const HelloWorld = ({ containerId }) => {
   const [count, setCount] = useState(initialState.count || 0);
   const [message, setMessage] = useState(initialState.message || "Hello!");
 
-  // Persist state across Turbo navigation
+  // ensures persists state across Turbo navigation
   useEffect(() => {
     const cleanup = useTurboCache(containerId, { count, message }, true);
     return cleanup;
