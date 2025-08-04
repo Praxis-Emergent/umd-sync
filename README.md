@@ -1,6 +1,6 @@
 # IslandJS Rails
 
-[![CI](https://github.com/islandjs/islandjs-rails/actions/workflows/github-actions-demo.yml/badge.svg)](https://github.com/praxis-emergent/islandjs-rails/actions/workflows/github-actions-demo.yml)
+[![CI](https://github.com/praxis-emergent/islandjs-rails/actions/workflows/github-actions-demo.yml/badge.svg)](https://github.com/praxis-emergent/islandjs-rails/actions/workflows/github-actions-demo.yml)
 [![Test Coverage](https://img.shields.io/badge/coverage-89.09%25-brightgreen.svg)](coverage/index.html)
 [![RSpec Tests](https://img.shields.io/badge/tests-162%20passing-brightgreen.svg)](spec/)
 [![Rails 8 Ready](https://img.shields.io/badge/Rails%208-Ready-brightgreen.svg)](#rails-8-ready)

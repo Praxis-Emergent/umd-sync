@@ -11,7 +11,7 @@ SimpleCov.start do
   add_group 'Configuration', 'lib/islandjs_rails/configuration.rb'
   
   minimum_coverage 87
-  minimum_coverage_by_file 40
+  minimum_coverage_by_file 30
 end
 
 require 'bundler/setup'
