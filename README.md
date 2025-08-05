@@ -50,7 +50,7 @@ rails "islandjs:install[vue]"
 - **Convention over Configuration** - Works with sensible defaults
 - **Package.json Integration** - Syncs with your existing package management
 - **CDN Downloads** - Fetches UMD builds from unpkg.com and jsdelivr.net
-- **Rails Integration** - Uses vendor files and ERB partials for seamless integration
+- **Rails Integration** - Serves auto-generated vendor UMD files for seamless integration
 - **Automatic Global Detection** - Converts package names to global variables
 - **Webpack Externals** - Updates webpack config to prevent duplicate bundling
 - **Flexible Architecture** - Compose and namespace libraries as needed

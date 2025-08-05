@@ -13,6 +13,8 @@
 mkmf.log
 Gemfile.lock
 
+.claude/
+
 # SimpleCov
 coverage/
 coverage.json
