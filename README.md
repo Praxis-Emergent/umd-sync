@@ -788,6 +788,196 @@ bundle exec rspec spec/lib/islandjs_rails/core_spec.rb
 bundle exec rspec --format documentation
 ```
 
+## React Components with Turbo Streams
+
+IslandJS Rails works seamlessly with Hotwire Turbo Streams for real-time updates. Here's a minimal but complete example showing how to implement interactive React components that receive real-time updates via Turbo Streams.
+
+### Example: Interactive Reactions Component
+
+This example demonstrates the core pattern: React handles user interactions locally, then Turbo Streams broadcast updates to all connected users.
+
+#### 1. React Component (`app/javascript/islands/components/Reactions.jsx`)
+
+```jsx
+import React, { useState } from 'react';
+
+function Reactions({ containerId }) {
+  // Get initial data from container element
+  const container = document.getElementById(containerId);
+  const initialState = container ? JSON.parse(container.dataset.initialState || '{}') : {};
+  
+  const feedItemId = initialState.feedItemId;
+  const initialReactions = initialState.initialReactions || [];
+  const [reactions, setReactions] = useState(initialReactions);
+  const [loading, setLoading] = useState(false);
+  
+  // Get current user ID from global user-data div
+  const userDataDiv = document.getElementById('user-data');
+  const currentUserId = userDataDiv?.dataset.userId ? parseInt(userDataDiv.dataset.userId) : null;
+  
+  const availableEmojis = ['👍', '❤️', '😂', '🚀'];
+
+  // Group reactions and check if current user reacted
+  const groupedReactions = reactions.reduce((acc, reaction) => {
+    if (!acc[reaction.emoji]) {
+      acc[reaction.emoji] = { count: 0, hasUserReacted: false };
+    }
+    acc[reaction.emoji].count++;
+    if (reaction.user_id === currentUserId) {
+      acc[reaction.emoji].hasUserReacted = true;
+    }
+    return acc;
+  }, {});
+
+  const toggleReaction = async (emoji) => {
+    if (loading) return;
+    setLoading(true);
+
+    const hasReacted = groupedReactions[emoji]?.hasUserReacted;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    try {
+      const response = await fetch(`/api/v1/feed_items/${feedItemId}/reactions${hasReacted ? `/${emoji}` : ''}`, {
+        method: hasReacted ? 'DELETE' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        body: hasReacted ? null : JSON.stringify({ reaction: { emoji } })
+      });
+
+      if (response.ok && !hasReacted) {
+        const data = await response.json();
+        setReactions(prev => [...prev, data.reaction]);
+      } else if (response.ok && hasReacted) {
+        setReactions(prev => prev.filter(r => !(r.emoji === emoji && r.user_id === currentUserId)));
+      }
+    } catch (error) {
+      console.error('Error toggling reaction:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      {/* Existing reactions */}
+      {Object.entries(groupedReactions).map(([emoji, data]) => (
+        <button
+          key={emoji}
+          onClick={() => toggleReaction(emoji)}
+          className={`px-2 py-1 rounded border ${
+            data.hasUserReacted ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'
+          }`}
+        >
+          {emoji} {data.count}
+        </button>
+      ))}
+      
+      {/* Add new reactions */}
+      {availableEmojis.filter(emoji => !groupedReactions[emoji]).map(emoji => (
+        <button
+          key={emoji}
+          onClick={() => toggleReaction(emoji)}
+          className="px-2 py-1 rounded border-dashed border-gray-300 hover:border-gray-400"
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default Reactions;
+```
+
+#### 2. Rails Partial (`app/views/feed_items/_feed_item.html.erb`)
+
+```erb
+<div id="<%= dom_id(feed_item) %>" class="feed-item">
+  <h3><%= feed_item.title %></h3>
+  <p><%= feed_item.description %></p>
+  
+  <!-- React Reactions Component -->
+  <%= react_component('Reactions', { 
+    feedItemId: feed_item.id,
+    initialReactions: feed_item.reactions.map do |reaction|
+      {
+        id: reaction.id,
+        emoji: reaction.emoji,
+        user_id: reaction.user_id
+      }
+    end
+  }) %>
+</div>
+```
+
+#### 3. Turbo Streams Setup (`app/views/feed_items/index.html.erb`)
+
+```erb
+<!-- Enable real-time updates -->
+<%= turbo_stream_from "feed_items_updates" %>
+
+<div class="feed-list">
+  <%= render partial: 'feed_item', collection: @feed_items %>
+</div>
+```
+
+#### 4. Controller Broadcasting (`app/controllers/api/v1/reactions_controller.rb`)
+
+```ruby
+class Api::V1::ReactionsController < ApplicationController
+  def create
+    @reaction = @feed_item.reactions.create!(reaction_params.merge(user: current_user))
+    
+    # Broadcast update to all connected users
+    @feed_item.broadcast_replace_to "feed_items_updates",
+      target: dom_id(@feed_item),
+      partial: "feed_items/feed_item",
+      locals: { feed_item: @feed_item }
+    
+    render json: { reaction: @reaction }
+  end
+
+  def destroy
+    @reaction = @feed_item.reactions.find_by!(emoji: params[:id], user: current_user)
+    @reaction.destroy!
+    
+    # Broadcast update to all connected users
+    @feed_item.broadcast_replace_to "feed_items_updates",
+      target: dom_id(@feed_item),
+      partial: "feed_items/feed_item",
+      locals: { feed_item: @feed_item }
+    
+    head :ok
+  end
+
+  private
+
+  def reaction_params
+    params.require(:reaction).permit(:emoji)
+  end
+end
+```
+
+### How It Works
+
+1. **User Interaction**: User clicks reaction button → React updates local state immediately
+2. **API Call**: React makes POST/DELETE request to Rails API
+3. **Broadcasting**: Controller broadcasts Turbo Stream update to all connected users
+4. **DOM Update**: Turbo Streams replace the feed item HTML with fresh data
+5. **Re-mounting**: React component automatically re-mounts with updated reactions
+
+### Key Benefits
+
+- **🚀 Instant Feedback**: Local state updates immediately, no waiting
+- **🔄 Real-time Sync**: All users see updates via Turbo Streams
+- **⚡ Zero Config**: No complex WebSocket setup required
+- **📦 Lightweight**: React handles UI, Rails handles data, Turbo handles sync
+- **🎯 Targeted Updates**: Only affected components re-render
+
+This pattern works for any interactive component: comments, votes, live chat, collaborative editing, and more!
+
 ## License
 
 MIT License - see LICENSE file for details.
