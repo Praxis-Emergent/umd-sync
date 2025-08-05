@@ -79,6 +79,17 @@ RSpec.configure do |config|
     IslandjsRails.instance_variable_set(:@configuration, nil)
     IslandjsRails.instance_variable_set(:@core, nil)
   end
+  
+  config.after(:suite) do
+    # Clean up any accidentally created app/ directory in project root after all tests
+    project_root = File.expand_path('../..', __FILE__)
+    app_dir = File.join(project_root, 'app')
+    
+    if Dir.exist?(app_dir)
+      # This gem should not have an app/ directory in its root
+      FileUtils.rm_rf(app_dir)
+    end
+  end
 
   # Helper methods for tests
   config.include Module.new {
