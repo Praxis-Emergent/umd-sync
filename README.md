@@ -830,18 +830,19 @@ function Reactions({ containerId }) {
   }, {});
 
   const toggleReaction = async (emoji) => {
-    if (loading) return;
+    if (loading || !feedItemId) return;
     setLoading(true);
 
     const hasReacted = groupedReactions[emoji]?.hasUserReacted;
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
     try {
-      const response = await fetch(`/api/v1/feed_items/${feedItemId}/reactions${hasReacted ? `/${emoji}` : ''}`, {
+      const response = await fetch(`/api/v1/feed_items/${feedItemId}/reactions${hasReacted ? `/${encodeURIComponent(emoji)}` : ''}`, {
         method: hasReacted ? 'DELETE' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
+          'X-CSRF-Token': csrfToken,
+          'Accept': 'application/json'
         },
         body: hasReacted ? null : JSON.stringify({ reaction: { emoji } })
       });
@@ -927,6 +928,9 @@ export default Reactions;
 
 ```ruby
 class Api::V1::ReactionsController < ApplicationController
+  before_action :set_feed_item
+  before_action :authenticate_user!
+
   def create
     @reaction = @feed_item.reactions.create!(reaction_params.merge(user: current_user))
     
@@ -953,6 +957,10 @@ class Api::V1::ReactionsController < ApplicationController
   end
 
   private
+
+  def set_feed_item
+    @feed_item = FeedItem.find(params[:feed_item_id])
+  end
 
   def reaction_params
     params.require(:reaction).permit(:emoji)
