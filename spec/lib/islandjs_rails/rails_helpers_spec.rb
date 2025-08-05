@@ -97,36 +97,45 @@ RSpec.describe IslandjsRails::RailsHelpers do
       allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'react').and_return(true)
       allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'vue').and_return(false)
       
-      # Mock render method for specific partial
+      # Mock render method for vendor UMD partial
       allow(view_context).to receive(:render) do |options|
         case options[:partial]
-        when 'shared/islands/react'
-          '<script>React UMD content</script>'
+        when 'shared/islands/vendor_umd'
+          '<script>Vendor UMD content</script>'
         else
           raise ActionView::MissingTemplate.new([], options[:partial], [], true, "Missing template")
         end
       end
     end
     
-    it 'renders specific partial when available' do
+    it 'returns deprecation warning in development' do
       result = view_context.umd_partial_for('react')
-      expect(result).to include('React UMD content')
+      expect(result).to include('umd_partial_for(\'react\') is deprecated')
+      expect(result).to include('Use island_partials or render \'shared/islands/vendor_umd\' instead')
     end
 
-    it 'returns warning comment for missing partials in development' do
+    it 'returns deprecation warning for missing partials in development' do
       result = view_context.umd_partial_for('vue')
-      expect(result).to include('Missing partial for vue')
-      expect(result).to include('rails islandjs:sync')
+      expect(result).to include('umd_partial_for(\'vue\') is deprecated')
+      expect(result).to include('Use island_partials or render \'shared/islands/vendor_umd\' instead')
     end
 
-    it 'returns empty string for unsupported packages in production' do
+    it 'delegates to vendor partial in production' do
       allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
-      allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'vue').and_return(false)
+      
+      result = view_context.umd_partial_for('vue')
+      expect(result).to include('Vendor UMD content')
+    end
+
+    it 'handles missing vendor partial gracefully in production' do
+      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
+      allow(view_context).to receive(:render).and_raise(ActionView::MissingTemplate.new([], 'shared/islands/vendor_umd', [], true, "Missing template"))
       
       result = view_context.umd_partial_for('vue')
       expect(result).to eq('')
     end
   end
+{{ ... }}
 
   describe 'environment handling' do
     it 'respects Rails environment for debug helpers' do
@@ -238,13 +247,12 @@ RSpec.describe IslandjsRails::RailsHelpers do
   end
 
   describe '#react_partials' do
-    it 'renders React and ReactDOM partials when installed' do
-      allow(IslandjsRails).to receive(:package_installed?).with('react').and_return(true)
-      allow(IslandjsRails).to receive(:package_installed?).with('react-dom').and_return(true)
-      
+    it 'returns deprecation warnings for React and ReactDOM' do
       result = view_context.react_partials
       
-      expect(result).to include('React UMD content')
+      expect(result).to include('umd_partial_for(\'react\') is deprecated')
+      expect(result).to include('umd_partial_for(\'react-dom\') is deprecated')
+      expect(result).to include('Use island_partials or render \'shared/islands/vendor_umd\' instead')
     end
   end
 

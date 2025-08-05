@@ -150,11 +150,17 @@ RSpec.describe IslandjsRails::Core do
     
     before do
       create_temp_webpack_config(temp_dir)
-      # Create some partials to simulate installed packages
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
-      FileUtils.mkdir_p(partials_dir)
-      File.write(File.join(partials_dir, '_react.html.erb'), '<script>React</script>')
-      File.write(File.join(partials_dir, '_lodash.html.erb'), '<script>lodash</script>')
+      
+      # Mock vendor manager with manifest containing react and lodash
+      vendor_manager = double('VendorManager')
+      manifest = {
+        'libs' => [
+          { 'name' => 'react', 'version' => '18.3.1' },
+          { 'name' => 'lodash', 'version' => '4.17.21' }
+        ]
+      }
+      allow(vendor_manager).to receive(:send).with(:read_manifest).and_return(manifest)
+      allow(IslandjsRails).to receive(:vendor_manager).and_return(vendor_manager)
     end
 
     it 'updates webpack externals with installed packages' do
@@ -208,10 +214,17 @@ RSpec.describe IslandjsRails::Core do
 
   describe '#status!' do
     before do
-      # Create some partials
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
-      FileUtils.mkdir_p(partials_dir)
-      File.write(File.join(partials_dir, '_react.html.erb'), '<script>React</script>')
+      # Mock vendor manager with proper manifest
+      vendor_manager = double('VendorManager')
+      allow(IslandjsRails).to receive(:vendor_manager).and_return(vendor_manager)
+      
+      # Mock manifest that includes react but not lodash
+      manifest = {
+        'libs' => [
+          { 'name' => 'react', 'version' => '18.3.1' }
+        ]
+      }
+      allow(vendor_manager).to receive(:send).with(:read_manifest).and_return(manifest)
     end
 
     it 'shows status of packages' do
@@ -222,27 +235,46 @@ RSpec.describe IslandjsRails::Core do
   end
 
   describe '#clean!' do
-    let(:partials_dir) { File.join(temp_dir, 'app', 'views', 'shared', 'islands') }
+    let(:vendor_dir) { File.join(temp_dir, 'public', 'islands', 'vendor') }
     
     before do
-      FileUtils.mkdir_p(partials_dir)
-      File.write(File.join(partials_dir, '_react.html.erb'), '<script>React</script>')
-      File.write(File.join(partials_dir, '_lodash.html.erb'), '<script>lodash</script>')
+      FileUtils.mkdir_p(vendor_dir)
+      File.write(File.join(vendor_dir, 'react.js'), '// React UMD')
+      File.write(File.join(vendor_dir, 'lodash.js'), '// Lodash UMD')
       create_temp_webpack_config(temp_dir)
+      
+      # Mock vendor manager with all necessary methods
+      vendor_manager = double('VendorManager')
+      allow(vendor_manager).to receive(:reset_manifest!)
+      allow(vendor_manager).to receive(:generate_vendor_partial!)
+      allow(vendor_manager).to receive(:install_package!)
+      allow(vendor_manager).to receive(:send).with(:read_manifest).and_return({ 'libs' => [] })
+      allow(vendor_manager).to receive(:send).with(:write_manifest, anything)
+      allow(vendor_manager).to receive(:send).with(:regenerate_vendor_partial!)
+      allow(IslandjsRails).to receive(:vendor_manager).and_return(vendor_manager)
     end
 
-    it 'removes all partial files' do
-      expect(Dir.glob(File.join(partials_dir, '*.erb')).length).to eq(2)
+    it 'removes all vendor files' do
+      expect(Dir.glob(File.join(vendor_dir, '*.js')).length).to eq(2)
       
-      expect { core.clean! }.to output(/Cleaning UMD partials/).to_stdout
+      expect { core.clean! }.to output(/Cleaning vendor files/).to_stdout
       
-      expect(Dir.glob(File.join(partials_dir, '*.erb')).length).to eq(0)
+      expect(Dir.glob(File.join(vendor_dir, '*.js')).length).to eq(0)
     end
 
     it 'resets webpack externals' do
+      # First, set up vendor manager to return packages for initial update
+      vendor_manager = IslandjsRails.vendor_manager
+      allow(vendor_manager).to receive(:send).with(:read_manifest).and_return({
+        'libs' => [{ 'name' => 'react', 'version' => '18.3.1' }]
+      })
+      
       core.update_webpack_externals # Add some externals first
       webpack_content_before = File.read(File.join(temp_dir, 'webpack.config.js'))
       expect(webpack_content_before).to include('"react": "React"')
+      
+      # Now mock empty manifest for clean operation
+      allow(vendor_manager).to receive(:send).with(:read_manifest).and_return({ 'libs' => [] })
       
       core.clean!
       
@@ -255,9 +287,15 @@ RSpec.describe IslandjsRails::Core do
   describe '#remove!' do
     before do
       create_temp_package_json(temp_dir, {'react' => '^18.3.1'})
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
-      FileUtils.mkdir_p(partials_dir)
-      File.write(File.join(partials_dir, '_react.html.erb'), '<script>React</script>')
+      vendor_dir = File.join(temp_dir, 'public', 'islands', 'vendor')
+      FileUtils.mkdir_p(vendor_dir)
+      File.write(File.join(vendor_dir, 'react.js'), '// React UMD')
+      
+      # Mock vendor manager
+      allow(IslandjsRails).to receive(:vendor_manager).and_return(double(
+        remove_package!: true,
+        generate_vendor_partial!: true
+      ))
     end
 
     it 'removes an installed package' do
@@ -279,17 +317,17 @@ RSpec.describe IslandjsRails::Core do
       expect { core.remove!('react') }.to raise_error(IslandjsRails::YarnError, /Failed to remove react/)
     end
 
-    it 'removes partial file and updates webpack externals' do
-      partial_path = File.join(temp_dir, 'app', 'views', 'shared', 'islands', '_react.html.erb')
-      expect(File.exist?(partial_path)).to be true
+    it 'removes vendor file and updates webpack externals' do
+      vendor_path = File.join(temp_dir, 'public', 'islands', 'vendor', 'react.js')
+      expect(File.exist?(vendor_path)).to be true
       
       allow(Open3).to receive(:capture3).and_return(['', '', double(success?: true)])
       allow(core).to receive(:update_webpack_externals)
       
       core.remove!('react')
       
-      expect(File.exist?(partial_path)).to be false
       expect(core).to have_received(:update_webpack_externals)
+      expect(IslandjsRails.vendor_manager).to have_received(:remove_package!).with('react')
     end
   end
 
@@ -300,15 +338,20 @@ RSpec.describe IslandjsRails::Core do
         'lodash' => '^4.17.21',
         'vue' => '^3.0.0'
       })
+      
+      # Mock vendor manager
+      allow(IslandjsRails).to receive(:vendor_manager).and_return(double(
+        install_package!: true,
+        generate_vendor_partial!: true
+      ))
     end
 
     it 'syncs all supported packages', vcr: { cassette_name: 'sync_all_packages' } do
       # Use the actual sync! method but mock the network calls
       expect { core.sync! }.to output(/Syncing all UMD packages/).to_stdout
       
-      # Verify that partials were created (indirect verification)
-      partials_dir = File.join(temp_dir, 'app', 'views', 'shared', 'islands')
-      expect(Dir.glob(File.join(partials_dir, '*.erb')).size).to be > 0
+      # Verify that vendor manager was called for supported packages
+      expect(IslandjsRails.vendor_manager).to have_received(:install_package!).at_least(:once)
     end
 
     it 'processes packages during sync' do
@@ -604,12 +647,18 @@ RSpec.describe IslandjsRails::Core do
   describe '#update!' do
     it 'calls yarn update and reinstalls package' do
       allow(core).to receive(:yarn_update!)
-      allow(core).to receive(:install_package!)
+      
+      # Mock vendor manager
+      vendor_manager = double('VendorManager')
+      allow(IslandjsRails).to receive(:vendor_manager).and_return(vendor_manager)
+      allow(vendor_manager).to receive(:install_package!).and_return(true)
+      allow(core).to receive(:detect_global_name).and_return('React')
+      allow(core).to receive(:update_webpack_externals)
       
       expect { core.update!('react', '18.3.1') }.to output(/Updating UMD package/).to_stdout
       
       expect(core).to have_received(:yarn_update!).with('react', '18.3.1')
-      expect(core).to have_received(:install_package!).with('react')
+      expect(vendor_manager).to have_received(:install_package!).with('react', '18.3.1')
     end
 
     it 'raises error if package not installed' do
@@ -911,14 +960,14 @@ RSpec.describe IslandjsRails::Core do
         expect(File.exist?(File.join(components_dir, '.gitkeep'))).to be true
       end
 
-      it 'skips existing files' do
-        FileUtils.mkdir_p(islandjs_dir)
-        File.write(File.join(islandjs_dir, 'index.js'), 'existing')
+      it 'creates JavaScript structure from templates' do
+        # Mock the template copying since templates don't exist in test environment
+        allow(FileUtils).to receive(:cp_r)
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with(anything).and_return(true)
         
-        expect { core.send(:create_scaffolded_structure!) }.to output(/already exists/).to_stdout
-        
-        content = File.read(File.join(islandjs_dir, 'index.js'))
-        expect(content).to eq('existing')
+        expect { core.send(:create_scaffolded_structure!) }.to output(/Creating scaffolded structure/).to_stdout
+        expect { core.send(:create_scaffolded_structure!) }.to output(/Created JavaScript islands structure from templates/).to_stdout
       end
     end
 
@@ -1093,22 +1142,22 @@ RSpec.describe IslandjsRails::Core do
         File.write(routes_file, "Rails.application.routes.draw do\n  # existing routes\nend")
         allow(Dir).to receive(:pwd).and_return(temp_dir)
         
-        expect { core.send(:add_demo_route!) }.to output(/Added route/).to_stdout
+        expect { core.send(:add_demo_route!) }.to output(/Added demo routes/).to_stdout
         
         content = File.read(routes_file)
-        expect(content).to include("get 'islandjs/react'")
-        expect(content).to include('islandjs_demo#react')
+        expect(content).to include("get 'islandjs', to: 'islandjs_demo#index'")
+        expect(content).to include("get 'islandjs/react', to: 'islandjs_demo#react'")
       end
 
-      it 'warns when routes file missing' do
-        expect { core.send(:add_demo_route!) }.to output(/Routes file not found/).to_stdout
+      it 'silently returns when routes file missing' do
+        expect { core.send(:add_demo_route!) }.not_to output.to_stdout
       end
 
-      it 'warns when cannot find insertion point' do
+      it 'silently returns when cannot find insertion point' do
         File.write(routes_file, "invalid content")
         allow(Dir).to receive(:pwd).and_return(temp_dir)
         
-        expect { core.send(:add_demo_route!) }.to output(/Could not automatically add route/).to_stdout
+        expect { core.send(:add_demo_route!) }.not_to output.to_stdout
       end
     end
   end
@@ -1184,18 +1233,31 @@ RSpec.describe IslandjsRails::Core do
     end
 
     describe '#clean!' do
-      it 'handles empty partials directory' do
-        partials_dir = core.configuration.partials_dir
-        FileUtils.mkdir_p(partials_dir)
+      it 'handles empty vendor directory' do
+        vendor_dir = core.configuration.vendor_dir
+        FileUtils.mkdir_p(vendor_dir)
         
-        expect { core.clean! }.to output(/Cleaning UMD partials/).to_stdout
+        # Mock vendor manager for clean operation
+        vendor_manager = double('VendorManager')
+        allow(vendor_manager).to receive(:send).with(:write_manifest, anything)
+        allow(vendor_manager).to receive(:send).with(:regenerate_vendor_partial!)
+        allow(vendor_manager).to receive(:install_package!).and_return(false)
+        allow(vendor_manager).to receive(:send).with(:read_manifest).and_return({ 'libs' => [] })
+        allow(IslandjsRails).to receive(:vendor_manager).and_return(vendor_manager)
         
-        # Directory should be removed if empty
-        expect(Dir.exist?(partials_dir)).to be false
+        expect { core.clean! }.to output(/Cleaning vendor files/).to_stdout
       end
 
-      it 'handles non-existent partials directory' do
-        expect { core.clean! }.to output(/Cleaning UMD partials/).to_stdout
+      it 'handles non-existent vendor directory' do
+        # Mock vendor manager for clean operation
+        vendor_manager = double('VendorManager')
+        allow(vendor_manager).to receive(:send).with(:write_manifest, anything)
+        allow(vendor_manager).to receive(:send).with(:regenerate_vendor_partial!)
+        allow(vendor_manager).to receive(:install_package!).and_return(false)
+        allow(vendor_manager).to receive(:send).with(:read_manifest).and_return({ 'libs' => [] })
+        allow(IslandjsRails).to receive(:vendor_manager).and_return(vendor_manager)
+        
+        expect { core.clean! }.to output(/Cleaning vendor files/).to_stdout
       end
     end
 

@@ -197,24 +197,43 @@ module IslandjsRails
       end
     end
 
-    # Clean all partials
-    def clean!
-      puts "🧹 Cleaning UMD partials..."
-      
-      if Dir.exist?(configuration.partials_dir)
-        Dir.glob(File.join(configuration.partials_dir, '*.html.erb')).each do |file|
-          File.delete(file)
-          puts "  ✓ Removed #{File.basename(file)}"
-        end
-        # Remove directory if it's now empty
-        if Dir.empty?(configuration.partials_dir)
-          Dir.rmdir(configuration.partials_dir)
-        end
+    # Clean vendor files and rebuild
+  def clean!
+    puts "🧹 Cleaning vendor files..."
+    
+    vendor_manager = IslandjsRails.vendor_manager
+    
+    # Clean vendor files
+    if Dir.exist?(configuration.vendor_dir)
+      Dir.glob(File.join(configuration.vendor_dir, '*.js')).each do |file|
+        File.delete(file)
+        puts "  ✓ Removed #{File.basename(file)}"
       end
-      
-      reset_webpack_externals
-      puts "✅ Clean completed!"
     end
+    
+    # Reset vendor manifest by writing empty manifest
+    empty_manifest = { 'libs' => [] }
+    vendor_manager.send(:write_manifest, empty_manifest)
+    puts "  ✓ Reset vendor manifest"
+    
+    # Regenerate vendor partial
+    vendor_manager.send(:regenerate_vendor_partial!)
+    puts "  ✓ Regenerated vendor partial"
+    
+    # Reset webpack externals
+    reset_webpack_externals
+    puts "  ✓ Reset webpack externals"
+    
+    # Reinstall all packages from package.json
+    installed_packages.each do |package_name, version|
+      puts "  📦 Reinstalling #{package_name}@#{version}..."
+      vendor_manager.install_package!(package_name, version)
+      global_name = detect_global_name(package_name)
+      update_webpack_externals(package_name, global_name)
+    end
+    
+    puts "✅ Clean completed!"
+  end
 
     # Public methods for external access
     def package_installed?(package_name)
