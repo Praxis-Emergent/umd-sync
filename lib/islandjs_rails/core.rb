@@ -42,7 +42,9 @@ module IslandjsRails
       
       # Step 5: Create directories
       FileUtils.mkdir_p(configuration.partials_dir)
+      FileUtils.mkdir_p(configuration.vendor_dir)
       puts "✓ Created #{configuration.partials_dir}"
+      puts "✓ Created #{configuration.vendor_dir}"
       
       # Step 6: Generate webpack config if it doesn't exist
       unless File.exist?(configuration.webpack_config_path)
@@ -52,8 +54,9 @@ module IslandjsRails
         puts "✓ webpack.config.js already exists"
       end
       
-      # Step 7: Auto-inject islands helper into layout
-      inject_umd_partials_into_layout!
+      # Step 7: Set up vendor system and inject into layout
+      setup_vendor_system!
+      inject_islands_helper_into_layout!
       
       # Step 8: Add node_modules to .gitignore
       ensure_node_modules_gitignored!
@@ -82,8 +85,11 @@ module IslandjsRails
       # Add to package.json via yarn if not present
       add_package_via_yarn(package_name, version) unless package_installed?(package_name)
       
-      # Install the UMD
-      install_package!(package_name, version)
+      # Install to vendor directory
+      vendor_manager = IslandjsRails.vendor_manager
+      success = vendor_manager.install_package!(package_name, version)
+      
+      return false unless success
       
       global_name = detect_global_name(package_name)
       update_webpack_externals(package_name, global_name)
@@ -108,8 +114,13 @@ module IslandjsRails
       # Update package.json via yarn
       yarn_update!(package_name, version)
       
-      # Re-install UMD
-      install_package!(package_name)
+      # Re-install to vendor directory
+      vendor_manager = IslandjsRails.vendor_manager
+      vendor_manager.install_package!(package_name, version)
+      
+      # Update webpack externals
+      global_name = detect_global_name(package_name)
+      update_webpack_externals(package_name, global_name)
       
       puts "✅ Successfully updated #{package_name}!"
     end
@@ -124,11 +135,9 @@ module IslandjsRails
       
       remove_package_via_yarn(package_name)
       
-      partial_path = partial_path_for(package_name)
-      if File.exist?(partial_path)
-        File.delete(partial_path)
-        puts "  ✓ Removed partial: #{File.basename(partial_path)}"
-      end
+      # Remove from vendor directory
+      vendor_manager = IslandjsRails.vendor_manager
+      vendor_manager.remove_package!(package_name)
       
       update_webpack_externals
       puts "✅ Successfully removed #{package_name}!"
@@ -144,10 +153,21 @@ module IslandjsRails
         return
       end
       
+      vendor_manager = IslandjsRails.vendor_manager
+      
       packages.each do |package_name|
         next unless supported_package?(package_name)
         puts "  📦 Processing #{package_name}..."
-        download_and_create_partial!(package_name)
+        
+        # Get version from package.json
+        version = version_for(package_name)
+        
+        # Install to vendor system
+        vendor_manager.install_package!(package_name, version)
+        
+        # Update webpack externals
+        global_name = detect_global_name(package_name)
+        update_webpack_externals(package_name, global_name)
       end
       
       puts "✅ Sync completed!"
@@ -164,32 +184,56 @@ module IslandjsRails
         return
       end
       
+      # Check vendor system instead of partials
+      vendor_manager = IslandjsRails.vendor_manager
+      manifest = vendor_manager.send(:read_manifest)
+      vendor_packages = manifest['libs'].map { |lib| lib['name'] }
+      
       packages.each do |package_name|
         version = version_for(package_name)
-        has_partial = has_partial?(package_name)
-        status_icon = has_partial ? "✅" : "❌"
-        puts "#{status_icon} #{package_name}@#{version} #{has_partial ? '(island ready)' : '(missing partial)'}"
+        has_vendor = vendor_packages.include?(package_name)
+        status_icon = has_vendor ? "✅" : "❌"
+        puts "#{status_icon} #{package_name}@#{version} #{has_vendor ? '(vendor ready)' : '(missing vendor)'}"
       end
     end
 
-    # Clean all partials
-    def clean!
-      puts "🧹 Cleaning UMD partials..."
-      
-      if Dir.exist?(configuration.partials_dir)
-        Dir.glob(File.join(configuration.partials_dir, '*.html.erb')).each do |file|
-          File.delete(file)
-          puts "  ✓ Removed #{File.basename(file)}"
-        end
-        # Remove directory if it's now empty
-        if Dir.empty?(configuration.partials_dir)
-          Dir.rmdir(configuration.partials_dir)
-        end
+    # Clean vendor files and rebuild
+  def clean!
+    puts "🧹 Cleaning vendor files..."
+    
+    vendor_manager = IslandjsRails.vendor_manager
+    
+    # Clean vendor files
+    if Dir.exist?(configuration.vendor_dir)
+      Dir.glob(File.join(configuration.vendor_dir, '*.js')).each do |file|
+        File.delete(file)
+        puts "  ✓ Removed #{File.basename(file)}"
       end
-      
-      reset_webpack_externals
-      puts "✅ Clean completed!"
     end
+    
+    # Reset vendor manifest by writing empty manifest
+    empty_manifest = { 'libs' => [] }
+    vendor_manager.send(:write_manifest, empty_manifest)
+    puts "  ✓ Reset vendor manifest"
+    
+    # Regenerate vendor partial
+    vendor_manager.send(:regenerate_vendor_partial!)
+    puts "  ✓ Regenerated vendor partial"
+    
+    # Reset webpack externals
+    reset_webpack_externals
+    puts "  ✓ Reset webpack externals"
+    
+    # Reinstall all packages from package.json
+    installed_packages.each do |package_name, version|
+      puts "  📦 Reinstalling #{package_name}@#{version}..."
+      vendor_manager.install_package!(package_name, version)
+      global_name = detect_global_name(package_name)
+      update_webpack_externals(package_name, global_name)
+    end
+    
+    puts "✅ Clean completed!"
+  end
 
     # Public methods for external access
     def package_installed?(package_name)

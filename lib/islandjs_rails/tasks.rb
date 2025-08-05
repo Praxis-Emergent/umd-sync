@@ -78,6 +78,41 @@ namespace :islandjs do
   task :version do
     puts "IslandjsRails #{IslandjsRails::VERSION}"
   end
+
+  namespace :vendor do
+    desc "Rebuild combined vendor bundle (for :external_combined mode)"
+    task :rebuild_combined => :environment do
+      IslandjsRails.vendor_manager.rebuild_combined_bundle!
+    end
+
+    desc "Show vendor configuration and status"
+    task :status => :environment do
+      config = IslandjsRails.configuration
+      puts "📦 IslandJS Vendor Status"
+      puts "=" * 40
+      puts "Mode: #{config.vendor_script_mode}"
+      puts "Vendor directory: #{config.vendor_dir}"
+      puts "Combined basename: #{config.combined_basename}"
+      puts "Vendor order: #{config.vendor_order.join(', ')}"
+      
+      # Show manifest info
+      manifest_path = config.vendor_manifest_path
+      if File.exist?(manifest_path)
+        require 'json'
+        manifest = JSON.parse(File.read(manifest_path))
+        puts "\nInstalled libraries: #{manifest['libs'].length}"
+        manifest['libs'].each do |lib|
+          puts "  • #{lib['name']}@#{lib['version']} (#{lib['file']})"
+        end
+        
+        if manifest['combined']
+          puts "\nCombined bundle: #{manifest['combined']['file']} (#{manifest['combined']['size_kb']}KB)"
+        end
+      else
+        puts "\nNo vendor manifest found"
+      end
+    end
+  end
 end
 
 # Alias tasks for convenience

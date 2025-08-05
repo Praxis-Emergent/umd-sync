@@ -1,0 +1,93 @@
+<div class="max-w-4xl mx-auto p-8">
+  <!-- Navigation -->
+  <div class="mb-6">
+    <a href="/islandjs" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+      <span class="mr-2">←</span>
+      Back to IslandJS Demo Home
+    </a>
+  </div>
+
+  <h1 class="text-3xl font-bold mb-6">🚀 React Component Island</h1>
+  
+  <!-- Turbo Cache Demo Instructions -->
+  <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+    <h3 class="text-lg font-semibold text-yellow-800 mb-2">🔄 Test Turbo Cache Integration</h3>
+    <p class="text-yellow-700 mb-2">
+      <strong>Try this:</strong> Interact with the component below (click the button, change the message), 
+      then navigate back to the demo home and return here. Your changes will be preserved!
+    </p>
+    <p class="text-sm text-yellow-600">
+      This demonstrates how IslandJS Rails components maintain state across Turbo navigation.
+    </p>
+  </div>
+
+  <!-- React Component Island -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6 border">
+    <h2 class="text-xl font-semibold mb-4 text-gray-800">Interactive React Component</h2>
+    <p class="text-gray-600 mb-4">
+      This React component maintains its state across page navigation thanks to Turbo cache integration.
+    </p>
+    
+    <div id="hello-world-demo" class="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50">
+      <%= react_component('HelloWorld', { 
+        message: 'Hello from IslandJS Rails!', 
+        count: 0,
+        showAdvanced: false 
+      }) %>
+    </div>
+  </div>
+
+  <!-- Technical Details -->
+  <div class="bg-gray-50 rounded-lg p-6 mb-6">
+    <h3 class="text-lg font-semibold mb-4 text-gray-800">🏗️ How It Works</h3>
+    <div class="grid md:grid-cols-2 gap-4 text-sm">
+      <div>
+        <h4 class="font-medium text-gray-800 mb-2">Component Rendering</h4>
+        <ol class="space-y-1 text-gray-600">
+          <li>1. Rails renders this ERB template</li>
+          <li>2. <code class="bg-gray-200 px-1 rounded">react_component</code> helper creates container</li>
+          <li>3. React loads from vendor files (<code class="bg-gray-200 px-1 rounded">/islands/vendor/</code>)</li>
+          <li>4. Component mounts as independent "island"</li>
+        </ol>
+      </div>
+      <div>
+        <h4 class="font-medium text-gray-800 mb-2">Turbo Integration</h4>
+        <ol class="space-y-1 text-gray-600">
+          <li>1. Component state saved to data attributes</li>
+          <li>2. Turbo caches page with current state</li>
+          <li>3. Navigation preserves component state</li>
+          <li>4. State restored on return visit</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Actions -->
+  <div class="text-center">
+    <a href="/islandjs" 
+       class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+      <span class="mr-2">←</span>
+      Back to Demo Home
+    </a>
+  </div>
+
+  <!-- Debug Info -->
+  <% if Rails.env.development? %>
+  <div class="mt-8 bg-gray-800 text-green-400 p-4 rounded-lg text-sm font-mono">
+    <h4 class="text-green-300 font-bold mb-2">🔧 Development Info</h4>
+    <div class="space-y-1">
+      <div>Vendor Mode: <%= IslandjsRails.configuration.vendor_script_mode %></div>
+      <div>React: <span id="react-version">Loading...</span></div>
+      <div>ReactDOM: <span id="reactdom-version">Loading...</span></div>
+      <div>Islands Namespace: <span id="islands-namespace">Loading...</span></div>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('react-version').textContent = window.React ? 'Loaded' : 'Missing';
+        document.getElementById('reactdom-version').textContent = window.ReactDOM ? 'Loaded' : 'Missing';
+        document.getElementById('islands-namespace').textContent = window.islandjsRails ? 'Available' : 'Missing';
+      });
+    </script>
+  </div>
+  <% end %>
+</div>

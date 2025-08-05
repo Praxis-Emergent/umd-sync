@@ -56,7 +56,7 @@ module IslandjsRails
       return false unless File.exist?(routes_file)
       
       content = File.read(routes_file)
-      content.include?('islandjs/react') || content.include?('islandjs_demo')
+      content.include?('islandjs_demo') || content.include?('islandjs/react') || content.include?("get 'islandjs'")
     end
 
     def create_demo_route!
@@ -70,76 +70,160 @@ module IslandjsRails
       FileUtils.mkdir_p(controller_dir)
       
       controller_file = File.join(controller_dir, 'islandjs_demo_controller.rb')
-      
-      controller_content = <<~RUBY
-        class IslandjsDemoController < ApplicationController
-          def react
-            # Demo route for showcasing IslandJS React integration
-          end
-        end
-      RUBY
-      
-      File.write(controller_file, controller_content)
-      puts "  ✓ Created islandjs_demo_controller"
+      copy_template_file('app/controllers/islandjs_demo_controller.rb', controller_file)
     end
 
     def create_demo_view!
       view_dir = File.join(Dir.pwd, 'app', 'views', 'islandjs_demo')
-      view_file = File.join(view_dir, 'react.html.erb')
-      
       FileUtils.mkdir_p(view_dir)
       
-      view_content = <<~ERB
-        <div class="max-w-4xl mx-auto p-8">
-          <h1 class="text-3xl font-bold mb-6">🏝️ IslandJS Rails Demo</h1>
-          <div class="bg-gray-50 rounded-lg p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4">React Component Island</h2>
-            <p class="text-gray-600 mb-4">This demonstrates a React component rendered as an "island" within a Rails application.</p>
-            <!-- React Component Island -->
-            <div id="hello-world-demo" class="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-white">
-              <%= react_component('HelloWorld', { message: 'Hello from IslandJS!' }) %>
-            </div>
-          </div>
-          <div class="prose">
-            <h3>How it works:</h3>
-            <ol>
-              <li>Rails renders this ERB template</li>
-              <li>The `react_component` helper injects the React component</li>
-              <li>IslandJS loads React from CDN and renders the component</li>
-              <li>The component runs independently as a JavaScript "island"</li>
-            </ol>
-            <p><a href="/" class="text-blue-600 hover:text-blue-800">← Back to Home</a></p>
-          </div>
-        </div>
-      ERB
+      # Copy demo view templates from gem
+      copy_demo_template('index.html.erb', view_dir)
+      copy_demo_template('react.html.erb', view_dir)
+    end
+
+    def copy_demo_template(template_name, destination_dir)
+      gem_root = File.expand_path('../../..', __FILE__)
+      template_path = File.join(gem_root, 'lib', 'templates', 'app', 'views', 'islandjs_demo', template_name)
+      destination_path = File.join(destination_dir, template_name)
       
-      File.write(view_file, view_content)
-      puts "  ✓ Created demo view at app/views/islandjs_demo/react.html.erb"
+      if File.exist?(template_path)
+        FileUtils.cp(template_path, destination_path)
+        puts "  ✓ Created #{template_name} at app/views/islandjs_demo/#{template_name}"
+      else
+        puts "  ⚠️  Template not found: #{template_path}"
+      end
+    end
+    
+    def copy_template_file(template_name, destination_path)
+      gem_root = File.expand_path('../../..', __FILE__)
+      template_path = File.join(gem_root, 'lib', 'templates', template_name)
+      
+      if File.exist?(template_path)
+        FileUtils.cp(template_path, destination_path)
+        puts "  ✓ Created #{File.basename(template_name)} from template"
+      else
+        puts "  ⚠️  Template not found: #{template_path}"
+      end
+    end
+    
+    def get_demo_routes_content(indent, has_root_route)
+      gem_root = File.expand_path('../../..', __FILE__)
+      template_path = File.join(gem_root, 'lib', 'templates', 'config', 'demo_routes.rb')
+      
+      if File.exist?(template_path)
+        routes_content = File.read(template_path)
+        # Apply indentation to each line
+        route_lines = routes_content.lines.map { |line| "#{indent}#{line}" }.join
+        
+        # Add root route if none exists
+        unless has_root_route
+          root_route = "#{indent}root 'islandjs_demo#index'\n"
+          route_lines = root_route + route_lines
+        end
+        
+        route_lines
+      else
+        # Fallback to hardcoded routes if template not found
+        route_lines = "#{indent}# IslandJS demo routes (you can remove these)\n"
+        unless has_root_route
+          route_lines += "#{indent}root 'islandjs_demo#index'\n"
+        end
+        route_lines += "#{indent}get 'islandjs', to: 'islandjs_demo#index'\n"
+        route_lines += "#{indent}get 'islandjs/react', to: 'islandjs_demo#react'\n"
+        route_lines
+      end
     end
 
     def add_demo_route!
       routes_file = File.join(Dir.pwd, 'config', 'routes.rb')
-      
-      unless File.exist?(routes_file)
-        puts "  ⚠️  Routes file not found, skipping route addition"
-        return
-      end
+      return unless File.exist?(routes_file)
       
       content = File.read(routes_file)
       
-      # Find a good place to insert the route (before the final 'end')
-      if match = content.match(/^(\s*)end\s*$/)
-        indent = match[1] # Capture the existing indentation
-        route_lines = "#{indent}# IslandJS demo route (you can remove this)\n#{indent}get 'islandjs/react', to: 'islandjs_demo#react'\n"
+      # Check if root route already exists
+      has_root_route = content.include?('root ') || content.match(/^\s*root\s/)
+      
+      # Find the Rails.application.routes.draw block
+      if content.match(/Rails\.application\.routes\.draw do\s*$/)
+        # Determine indentation
+        indent = content.match(/^(\s*)Rails\.application\.routes\.draw do\s*$/)[1]
         
-        # Insert before the last 'end' with proper indentation
-        updated_content = content.sub(/^(\s*)end\s*$/, "#{route_lines}\n\\1end")
+        # Build route lines from template
+        route_lines = get_demo_routes_content(indent, has_root_route)
+        
+        # Add the routes after the draw line
+        updated_content = content.sub(
+          /(Rails\.application\.routes\.draw do\s*$)/,
+          "\\1\n#{route_lines}"
+        )
+        
         File.write(routes_file, updated_content)
-        puts "  ✓ Added route to config/routes.rb"
-      else
-        puts "  ⚠️  Could not automatically add route. Please add manually:"
+        puts "  ✓ Added demo routes to config/routes.rb:"
+        unless has_root_route
+          puts "     root 'islandjs_demo#index' (set as homepage)"
+        end
+        puts "     get 'islandjs', to: 'islandjs_demo#index'"
         puts "     get 'islandjs/react', to: 'islandjs_demo#react'"
       end
+    end
+
+    def setup_vendor_system!
+      # Initialize empty vendor manifest
+      manifest_path = configuration.vendor_manifest_path
+      unless File.exist?(manifest_path)
+        require 'json'
+        initial_manifest = { 'libs' => [] }
+        FileUtils.mkdir_p(File.dirname(manifest_path))
+        File.write(manifest_path, JSON.pretty_generate(initial_manifest))
+        puts "  ✓ Created vendor manifest"
+      end
+
+      # Generate initial empty vendor partial
+      vendor_manager = IslandjsRails.vendor_manager
+      vendor_manager.send(:regenerate_vendor_partial!)
+      puts "  ✓ Generated vendor UMD partial"
+    end
+
+    def inject_islands_helper_into_layout!
+      layout_path = find_application_layout
+      return unless layout_path
+
+      content = File.read(layout_path)
+      islands_helper_line = '<%= islands %>'
+      vendor_render_line = '<%= render "shared/islands/vendor_umd" %>'
+
+      # Check if islands helper or vendor partial is already included
+      if content.include?(islands_helper_line) || content.include?('islands %>') ||
+         content.include?(vendor_render_line) || content.include?('render "shared/islands/vendor_umd"')
+        puts "  ✓ Islands helper already included in layout"
+        return
+      end
+
+      # Try to inject after existing head content or before </head>
+      if content.include?('</head>')
+        updated_content = content.sub(
+          /\s*<\/head>/,
+          "\n    #{islands_helper_line}\n  </head>"
+        )
+        
+        File.write(layout_path, updated_content)
+        puts "  ✓ Added islands helper to #{File.basename(layout_path)}"
+      else
+        puts "  ⚠️  Could not automatically inject islands helper. Please add manually:"
+        puts "     #{islands_helper_line}"
+      end
+    end
+
+    def find_application_layout
+      # Look for application layout in common locations
+      layout_paths = [
+        File.join(Dir.pwd, 'app', 'views', 'layouts', 'application.html.erb'),
+        File.join(Dir.pwd, 'app', 'views', 'layouts', 'application.html.haml'),
+        File.join(Dir.pwd, 'app', 'views', 'layouts', 'application.html.slim')
+      ]
+      
+      layout_paths.find { |path| File.exist?(path) }
     end
 
     def check_node_tools!
@@ -209,35 +293,21 @@ module IslandjsRails
     def create_scaffolded_structure!
       puts "🏗️  Creating scaffolded structure..."
       
-      js_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands')
+      # Copy entire JavaScript islands structure from templates
+      gem_root = File.expand_path('../../..', __FILE__)
+      template_js_dir = File.join(gem_root, 'lib', 'templates', 'app', 'javascript', 'islands')
+      target_js_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands')
       
-      FileUtils.mkdir_p(js_dir)
-      
-      index_js_path = File.join(js_dir, 'index.js')
-      
-      unless File.exist?(index_js_path)
-        # Copy from gem's template file instead of hardcoded string
-        gem_template_path = File.join(__dir__, '..', '..', 'app', 'javascript', 'islands', 'index.js')
-        
-        if File.exist?(gem_template_path)
-          FileUtils.cp(gem_template_path, index_js_path)
-          puts "✓ Created app/javascript/islands/index.js"
-        else
-          puts "⚠️  Template file not found: #{gem_template_path}"
-        end
+      if Dir.exist?(template_js_dir)
+        FileUtils.mkdir_p(File.dirname(target_js_dir))
+        FileUtils.cp_r(template_js_dir, File.dirname(target_js_dir))
+        puts "✓ Created JavaScript islands structure from templates"
       else
-        puts "✓ app/javascript/islands/index.js already exists"
-      end
-      
-      components_dir = File.join(Dir.pwd, 'app', 'javascript', 'islands', 'components')
-      FileUtils.mkdir_p(components_dir)
-      
-      gitkeep_path = File.join(components_dir, '.gitkeep')
-      unless File.exist?(gitkeep_path)
-        File.write(gitkeep_path, '')
-        puts "✓ Created components/.gitkeep"
-      else
-        puts "✓ components/.gitkeep already exists"
+        puts "⚠️  Template JavaScript directory not found: #{template_js_dir}"
+        # Fallback: create minimal structure
+        FileUtils.mkdir_p(File.join(target_js_dir, 'components'))
+        File.write(File.join(target_js_dir, 'components', '.gitkeep'), '')
+        puts "✓ Created minimal JavaScript structure"
       end
       
       FileUtils.mkdir_p(configuration.partials_dir)
@@ -484,70 +554,7 @@ module IslandjsRails
     end
 
     def generate_webpack_config!
-      # Copy from gem's template file instead of hardcoded string
-      gem_template_path = File.join(__dir__, '..', '..', 'webpack.config.js')
-      
-      if File.exist?(gem_template_path)
-        FileUtils.cp(gem_template_path, configuration.webpack_config_path)
-        puts "✓ Created webpack.config.js from template"
-      else
-        puts "⚠️  Template file not found: #{gem_template_path}"
-        # Fallback to hardcoded version (though this shouldn't happen)
-        webpack_content = <<~JS
-          const path = require('path');
-          const TerserPlugin = require('terser-webpack-plugin');
-          const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
-          
-          const isProduction = process.env.NODE_ENV === 'production';
-          
-          module.exports = {
-            mode: isProduction ? 'production' : 'development',
-            entry: {
-              islands_bundle: ['./app/javascript/islands/index.js']
-            },
-            externals: {
-              // IslandjsRails managed externals - do not edit manually
-            },
-            output: {
-              filename: '[name].[contenthash].js',
-              path: path.resolve(__dirname, 'public'),
-              publicPath: '/',
-              clean: false
-            },
-            module: {
-              rules: [
-                {
-                  test: /\\.(js|jsx)$/,
-                  exclude: /node_modules/,
-                  use: {
-                    loader: 'babel-loader',
-                    options: {
-                      presets: ['@babel/preset-env', '@babel/preset-react']
-                    }
-                  }
-                }
-              ]
-            },
-            resolve: {
-              extensions: ['.js', '.jsx']
-            },
-            optimization: {
-              minimize: isProduction,
-              minimizer: [new TerserPlugin()]
-            },
-            plugins: [
-              new WebpackManifestPlugin({
-                fileName: 'islands_manifest.json',
-                publicPath: '/'
-              })
-            ],
-            devtool: isProduction ? false : 'source-map'
-          };
-        JS
-        
-        File.write(configuration.webpack_config_path, webpack_content)
-        puts "✓ Created webpack.config.js from fallback template"
-      end
+      copy_template_file('webpack.config.js', configuration.webpack_config_path)
     end
 
     def url_accessible?(url)
@@ -594,8 +601,13 @@ module IslandjsRails
       content = File.read(webpack_config_path)
       
       externals = {}
-      installed_packages.each do |pkg|
-        next unless has_partial?(pkg)
+      
+      # Get installed packages from vendor manifest instead of partials
+      vendor_manager = IslandjsRails.vendor_manager
+      manifest = vendor_manager.send(:read_manifest)
+      
+      manifest['libs'].each do |lib|
+        pkg = lib['name']
         externals[pkg] = get_global_name_for_package(pkg)
       end
       

@@ -8,10 +8,13 @@ module IslandjsRails
       
       content = File.read(webpack_config_path)
       
-      # Get all installed packages and their global names
+      # Get all installed packages from vendor manifest
       externals = {}
-      installed_packages.each do |pkg|
-        next unless has_partial?(pkg)
+      vendor_manager = IslandjsRails.vendor_manager
+      manifest = vendor_manager.send(:read_manifest)
+      
+      manifest['libs'].each do |lib|
+        pkg = lib['name']
         externals[pkg] = get_global_name_for_package(pkg)
       end
       

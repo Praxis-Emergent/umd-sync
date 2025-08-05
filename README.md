@@ -50,7 +50,7 @@ rails "islandjs:install[vue]"
 - **Convention over Configuration** - Works with sensible defaults
 - **Package.json Integration** - Syncs with your existing package management
 - **CDN Downloads** - Fetches UMD builds from unpkg.com and jsdelivr.net
-- **Rails Integration** - Uses ERB partials for seamless integration
+- **Rails Integration** - Uses vendor files and ERB partials for seamless integration
 - **Automatic Global Detection** - Converts package names to global variables
 - **Webpack Externals** - Updates webpack config to prevent duplicate bundling
 - **Flexible Architecture** - Compose and namespace libraries as needed
@@ -150,16 +150,16 @@ export default DashboardApp;
 # Initialize IslandJS Rails in your project
 rails islandjs:init
 
-# Install packages (adds to package.json + creates UMD partial)
+# Install packages (adds to package.json + saves to vendor directory)
 rails "islandjs:install[react]"
 rails "islandjs:install[react,18.3.1]"       # With specific version
 rails "islandjs:install[lodash]"
 
-# Update packages (updates package.json + refreshes UMD partial)
+# Update packages (updates package.json + refreshes vendor files)
 rails "islandjs:update[react]"
 rails "islandjs:update[react,18.3.1]"       # To specific version
 
-# Remove packages (removes from package.json + deletes UMD partial)
+# Remove packages (removes from package.json + deletes vendor files)
 rails "islandjs:remove[react]"
 rails "islandjs:remove[lodash]"
 
@@ -169,7 +169,7 @@ rails islandjs:sync
 # Show status of all UMD packages
 rails islandjs:status
 
-# Clean all UMD files (removes ALL partials)
+# Clean all UMD files (removes ALL vendor files)
 rails islandjs:clean
 
 # Show configuration
@@ -178,6 +178,28 @@ rails islandjs:config
 # Show IslandJS Rails version
 rails islandjs:version
 ```
+
+### 🗂️ Vendor System Management
+
+IslandJS Rails includes additional tasks for managing the vendor file system:
+
+```bash
+# Rebuild the combined vendor bundle (when using :external_combined mode)
+rails islandjs:vendor:rebuild
+
+# Show vendor system status and file sizes
+rails islandjs:vendor:status
+```
+
+**Vendor System Modes:**
+- **`:external_split`** (default): Each library served as separate file from `public/islands/vendor/`
+- **`:external_combined`**: All libraries concatenated into single bundle with cache-busting hash
+
+**Benefits of Vendor System:**
+- 🚀 **Better Performance**: Browser caching, parallel downloads, no Base64 bloat
+- 📦 **Scalable**: File size doesn't affect HTML parsing or memory usage
+- 🔧 **Maintainable**: Clear separation between vendor libraries and application code
+- 🌐 **CDN Ready**: Vendor files can be easily moved to CDN for global distribution
 
 ### 🛠️ Development & Production Commands
 
@@ -361,20 +383,36 @@ end
 
 | Command | What it does | Example |
 |---------|--------------|---------|
-| `install` | Adds package via yarn + downloads UMD + creates partial | `rails islandjs:install[react]` |
+| `install` | Adds package via yarn + downloads UMD + saves to vendor | `rails islandjs:install[react]` |
 | `update` | Updates package version + refreshes UMD | `rails islandjs:update[react,18.3.1]` |
-| `remove` | Removes package via yarn + deletes partial | `rails islandjs:remove[react]` |
+| `remove` | Removes package via yarn + deletes vendor files | `rails islandjs:remove[react]` |
 | `sync` | Re-downloads UMDs for all packages in package.json | `rails islandjs:sync` |
-| `status` | Shows which packages have UMD partials | `rails islandjs:status` |
-| `clean` | Removes ALL UMD partials (destructive!) | `rails islandjs:clean` |
+| `status` | Shows which packages have vendor files | `rails islandjs:status` |
+| `clean` | Removes ALL vendor files (destructive!) | `rails islandjs:clean` |
 
 ### Configuration
 
 ```ruby
 # config/initializers/islandjs.rb
 IslandjsRails.configure do |config|
+  # Directory for ERB partials (default: app/views/shared/islands)
   config.partials_dir = Rails.root.join('app/views/shared/islands')
+  
+  # Webpack configuration path
   config.webpack_config_path = Rails.root.join('webpack.config.js')
+  
+  # Vendor file delivery mode (default: :external_split)
+  config.vendor_script_mode = :external_split    # One file per library
+  # config.vendor_script_mode = :external_combined # Single combined bundle
+  
+  # Vendor files directory (default: public/islands/vendor)
+  config.vendor_dir = Rails.root.join('public/islands/vendor')
+  
+  # Combined bundle filename base (default: 'islands-vendor')
+  config.combined_basename = 'islands-vendor'
+  
+  # Library loading order for combined bundles
+  config.vendor_order = ['react', 'react-dom', 'lodash']
 end
 ```
 
@@ -383,11 +421,16 @@ end
 ### Helpers
 
 #### `islands`
-Single helper that includes all UMD partials and your webpack bundle.
+Single helper that includes all UMD vendor scripts and your webpack bundle.
 
 ```erb
 <%= islands %>
 ```
+
+This automatically loads:
+- All UMD libraries from vendor files (either split or combined mode)
+- Your webpack bundle
+- Debug information in development
 
 #### `react_component(name, props, options)`
 Renders a React component with Turbo-compatible lifecycle.
@@ -541,13 +584,13 @@ module.exports = {
 # Initialize IslandJS Rails in project
 IslandjsRails.init!
 
-# Install a package and create partial
+# Install a package and save to vendor
 IslandjsRails.install!('react', '18.3.1')
 
 # Update an existing package
 IslandjsRails.update!('react', '18.3.1')
 
-# Remove a package (from package.json + delete partial)
+# Remove a package (from package.json + delete vendor files)
 IslandjsRails.remove!('react')
 
 # Sync all packages
@@ -556,7 +599,7 @@ IslandjsRails.sync!
 # Show status
 IslandjsRails.status!
 
-# Clean all partials and reset webpack externals
+# Clean all vendor files and reset webpack externals
 IslandjsRails.clean!
 
 # Check what packages are installed
@@ -570,7 +613,7 @@ IslandjsRails.version_for('react')
 
 ```ruby
 IslandjsRails.configure do |config|
-  # Directory for UMD partials (default: app/views/shared/islands)
+  # Directory for ERB partials (default: app/views/shared/islands)
   config.partials_dir = Rails.root.join('app/views/shared/islands')
   
   # Path to webpack config (default: webpack.config.js)
@@ -578,6 +621,19 @@ IslandjsRails.configure do |config|
   
   # Path to package.json (default: package.json)
   config.package_json_path = Rails.root.join('package.json')
+  
+  # Vendor file delivery mode (default: :external_split)
+  config.vendor_script_mode = :external_split    # One file per library
+  # config.vendor_script_mode = :external_combined # Single combined bundle
+  
+  # Vendor files directory (default: public/islands/vendor)
+  config.vendor_dir = Rails.root.join('public/islands/vendor')
+  
+  # Combined bundle filename base (default: 'islands-vendor')
+  config.combined_basename = 'islands-vendor'
+  
+  # Library loading order for combined bundles
+  config.vendor_order = ['react', 'react-dom', 'lodash']
   
   # Custom global name mappings
   config.global_name_overrides = {

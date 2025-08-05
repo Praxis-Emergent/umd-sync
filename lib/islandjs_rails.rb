@@ -1,6 +1,7 @@
 require_relative "islandjs_rails/version"
 require_relative "islandjs_rails/configuration"
 require_relative "islandjs_rails/core"
+require_relative "islandjs_rails/vendor_manager"
 require_relative "islandjs_rails/cli"
 
 # Conditionally require Rails-specific components
@@ -85,6 +86,11 @@ module IslandjsRails
     # Core instance management
     def core
       @core ||= Core.new
+    end
+
+    # Vendor manager instance
+    def vendor_manager
+      @vendor_manager ||= VendorManager.new(configuration)
     end
 
     # Delegate common methods to core
