@@ -759,6 +759,8 @@ RSpec.describe IslandjsRails::Core do
       end
 
       it 'handles missing index.js file' do
+        # Mock Dir.pwd to prevent file operations in project root
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
         expect { core.send(:uncomment_react_imports!) }.not_to raise_error
       end
     end
@@ -790,6 +792,8 @@ RSpec.describe IslandjsRails::Core do
       it 'skips if component already exists' do
         File.write(hello_world_path, 'existing content')
         
+        # Mock Dir.pwd to prevent file operations in project root
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
         expect { core.send(:create_hello_world_component!) }.to output(/already exists/).to_stdout
         
         content = File.read(hello_world_path)
@@ -951,9 +955,10 @@ RSpec.describe IslandjsRails::Core do
         # Ensure the directory doesn't exist first
         FileUtils.rm_rf(islandjs_dir) if Dir.exist?(islandjs_dir)
         
-        Dir.chdir(temp_dir) do
-          expect { core.send(:create_scaffolded_structure!) }.to output(/🏗️  Creating scaffolded structure/).to_stdout
-        end
+        # Mock Dir.pwd to always return temp_dir to prevent files being created in wrong location
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
+        
+        expect { core.send(:create_scaffolded_structure!) }.to output(/🏗️  Creating scaffolded structure/).to_stdout
         
         expect(Dir.exist?(components_dir)).to be true
         expect(File.exist?(File.join(islandjs_dir, 'index.js'))).to be true
@@ -965,6 +970,8 @@ RSpec.describe IslandjsRails::Core do
         allow(FileUtils).to receive(:cp_r)
         allow(File).to receive(:exist?).and_call_original
         allow(File).to receive(:exist?).with(anything).and_return(true)
+        # Mock Dir.pwd to prevent files being created in wrong location
+        allow(Dir).to receive(:pwd).and_return(temp_dir)
         
         expect { core.send(:create_scaffolded_structure!) }.to output(/Creating scaffolded structure/).to_stdout
         expect { core.send(:create_scaffolded_structure!) }.to output(/Created JavaScript islands structure from templates/).to_stdout
