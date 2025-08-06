@@ -99,7 +99,7 @@ Modern Rails developers face a painful choice:
 ### The IslandJS Rails Solution
 ```bash
 # Instead of complex webpack configuration:
-rails "islandjs:install[react]"
+rails "islandjs:install[react,18.3.1]"
 rails "islandjs:install[lodash]"
 ```
 
