@@ -15,6 +15,7 @@ Gem::Specification.new do |spec|
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/praxis-emergent/islandjs-rails"
   spec.metadata["changelog_uri"] = "https://github.com/praxis-emergent/islandjs-rails/blob/main/CHANGELOG.md"
+  spec.metadata["documentation_uri"] = "https://github.com/praxis-emergent/islandjs-rails/blob/main/README.md"
 
   # Specify which files should be added to the gem when it is released.
   spec.files = Dir.chdir(__dir__) do
@@ -42,7 +43,7 @@ Gem::Specification.new do |spec|
   MSG
 
   # Rails integration
-  spec.add_dependency "rails", ">= 7.0"
+  spec.add_dependency "rails", ">= 7.0", "< 9.0"
   spec.add_dependency "thor", "~> 1.0"
   
   # Development dependencies
