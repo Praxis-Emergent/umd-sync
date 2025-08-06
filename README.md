@@ -534,16 +534,6 @@ const HelloWorld = ({ containerId }) => {
 }) %>
 ```
 
-### Live Demo
-
-See the complete demo: [`react.html.erb`](app/views/islandjs_demo/react.html.erb)
-
-The demo shows:
-- ✅ **State persistence** across Turbo navigation
-- ✅ **Automatic state restoration** when navigating back
-- ✅ **Zero configuration** - works out of the box
-- ✅ **Compatible with Turbo Drive** and all Hotwire features
-
 ### Turbo Utility Functions
 
 IslandJS Rails provides utility functions for Turbo compatibility:
