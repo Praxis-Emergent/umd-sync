@@ -49,7 +49,8 @@ module IslandjsRails
     end
 
     # Mount a React component with props and Turbo-compatible lifecycle
-    def react_component(component_name, props = {}, options = {})
+    # Supports optional placeholder content via block or options
+    def react_component(component_name, props = {}, options = {}, &block)
       # Generate component ID - use custom container_id if provided
       if options[:container_id]
         component_id = options[:container_id]
@@ -61,6 +62,10 @@ module IslandjsRails
       tag_name = options[:tag] || 'div'
       css_class = options[:class] || ''
       namespace = options[:namespace] || 'window.islandjsRails'
+      
+      # Handle placeholder options
+      placeholder_class = options[:placeholder_class]
+      placeholder_style = options[:placeholder_style]
       
       # For turbo-cache compatibility, store initial state as JSON in data attribute
       initial_state_json = props.to_json
@@ -95,7 +100,24 @@ module IslandjsRails
       # Add data-initial-state for turbo-cache compatibility
       initial_state_attr = " data-initial-state=\"#{initial_state_json.gsub('"', '&quot;')}\""
       
-      container_html = "<#{tag_name} id=\"#{component_id}\"#{class_part}#{data_part}#{initial_state_attr}></#{tag_name}>"
+      # Generate placeholder content
+      placeholder_content = if block_given?
+        placeholder_html = capture(&block)
+        "<div data-island-placeholder=\"true\">#{placeholder_html}</div>"
+      elsif placeholder_class || placeholder_style
+        class_attr = placeholder_class ? " class=\"#{placeholder_class}\"" : ""
+        style_attr = placeholder_style ? " style=\"#{placeholder_style}\"" : ""
+        "<div data-island-placeholder=\"true\"#{class_attr}#{style_attr}></div>"
+      else
+        ""
+      end
+      
+      # Build container HTML with optional placeholder
+      if placeholder_content.empty?
+        container_html = "<#{tag_name} id=\"#{component_id}\"#{class_part}#{data_part}#{initial_state_attr}></#{tag_name}>"
+      else
+        container_html = "<#{tag_name} id=\"#{component_id}\"#{class_part}#{data_part}#{initial_state_attr}>#{placeholder_content}</#{tag_name}>"
+      end
       
       html_safe_string("#{container_html}\n#{mount_script}")
     end
@@ -241,30 +263,48 @@ module IslandjsRails
         <script>
           (function() {
             function mount#{component_name}() {
+              const container = document.getElementById('#{component_id}');
+              if (!container) return;
+              
+              // Check for component availability
               if (typeof #{namespace_with_optional} === 'undefined' || !#{namespace_with_optional}.#{component_name}) {
                 console.warn('IslandJS: #{component_name} component not found. Make sure it\\'s exported in your bundle.');
+                // Restore placeholder visibility if component fails to load
+                const placeholder = container.querySelector('[data-island-placeholder="true"]');
+                if (placeholder) {
+                  placeholder.style.display = '';
+                }
                 return;
               }
               
               if (typeof React === 'undefined' || typeof window.ReactDOM === 'undefined') {
                 console.warn('IslandJS: React or ReactDOM not loaded. Install with: rails "islandjs:install[react]" and rails "islandjs:install[react-dom]"');
+                // Restore placeholder visibility if React fails to load
+                const placeholder = container.querySelector('[data-island-placeholder="true"]');
+                if (placeholder) {
+                  placeholder.style.display = '';
+                }
                 return;
               }
-              
-              const container = document.getElementById('#{component_id}');
-              if (!container) return;
               
               const props = { containerId: '#{component_id}' };
               const element = React.createElement(#{namespace_with_optional}.#{component_name}, props);
               
-              // Use React 18 createRoot if available, fallback to React 17 render
-              if (window.ReactDOM.createRoot) {
-                if (!container._reactRoot) {
-                  container._reactRoot = window.ReactDOM.createRoot(container);
+              try {
+                // Use React 18 createRoot if available, fallback to React 17 render
+                if (window.ReactDOM.createRoot) {
+                  if (!container._reactRoot) {
+                    container._reactRoot = window.ReactDOM.createRoot(container);
+                  }
+                  container._reactRoot.render(element);
+                  // React 18 automatically clears container - no manual cleanup needed
+                } else {
+                  // React 17 - render is synchronous and clears container automatically
+                  window.ReactDOM.render(element, container);
                 }
-                container._reactRoot.render(element);
-              } else {
-                window.ReactDOM.render(element, container);
+              } catch (error) {
+                console.error('IslandJS: Failed to mount #{component_name}:', error);
+                // On error, keep placeholder visible by not modifying container
               }
             }
             

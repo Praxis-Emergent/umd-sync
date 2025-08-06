@@ -38,6 +38,11 @@ rails "islandjs:install[react-dom,18.3.1]"
 ```erb
 <!-- In any view -->
 <%= react_component('DashboardApp', { userId: current_user.id }) %>
+
+<!-- With placeholder (v0.2.0+) to prevent layout shift -->
+<%= react_component('DashboardApp', { userId: current_user.id }) do %>
+  <div class="loading-skeleton">Loading dashboard...</div>
+<% end %>
 ```
 
 > 💡 **Turbo Cache Compatible**: React components automatically persist state across Turbo navigation! See [Turbo Cache Integration](#turbo-cache-integration) for details.
@@ -100,6 +105,9 @@ Modern Rails developers face a painful choice:
 ```bash
 # Instead of complex webpack configuration:
 rails "islandjs:install[react,18.3.1]"
+rails "islandjs:install[react-beautiful-dnd]"
+rails "islandjs:install[quill]"
+rails "islandjs:install[recharts]"
 rails "islandjs:install[lodash]"
 ```
 
@@ -119,6 +127,7 @@ rails "islandjs:install[lodash]"
 - **CDN Downloads** - Fetches UMD builds from unpkg.com and jsdelivr.net
 - **Rails Integration** - Serves auto-generated vendor UMD files for seamless integration
 - **Webpack Externals** - Updates webpack config to prevent duplicate bundling while allowing development in jsx or other formats
+- **Placeholder Support** - Eliminate layout shift with automatic placeholder management ⚡ *New in v0.2.0*
 - **Flexible Architecture** - Compose and namespace libraries as needed
 
 ## CLI Commands
@@ -363,8 +372,8 @@ This automatically loads:
 - Your webpack bundle
 - Debug information in development
 
-#### `react_component(name, props, options)`
-Renders a React component with Turbo-compatible lifecycle.
+#### `react_component(name, props, options, &block)`
+Renders a React component with Turbo-compatible lifecycle and optional placeholder support.
 
 ```erb
 <%= react_component('UserProfile', { 
@@ -375,6 +384,92 @@ Renders a React component with Turbo-compatible lifecycle.
   namespace: 'window.islandjsRails'
 }) %>
 ```
+
+**Available Options:**
+- `container_id`: Custom ID for the container element
+- `namespace`: JavaScript namespace for component access (default: `window.islandjsRails`)
+- `tag`: HTML tag for container (default: `div`)
+- `class`: CSS class for container
+- `placeholder_class`: CSS class for placeholder content
+- `placeholder_style`: Inline styles for placeholder content
+
+## Placeholder Support
+
+⚡ **New in v0.2.0** - Prevent layout shift when React components mount!
+
+The `react_component` helper now supports placeholder content that displays while your React component loads, eliminating the "jumpy" effect common in dynamic content updates via Turbo Streams.
+
+### Problem Solved
+
+When React components mount (especially via Turbo Stream updates), there's often a brief moment where content height changes, causing layout shift:
+
+```erb
+<!-- Before: Content jumps when component mounts -->
+<%= react_component("Reactions", { postId: post.id }) %>
+<!-- Page content shifts down when reactions component renders -->
+```
+
+### Solution: Three Placeholder Patterns
+
+#### 1. ERB Block Placeholder (Most Flexible)
+```erb
+<%= react_component("Reactions", { postId: post.id }) do %>
+  <div class="reactions-skeleton">
+    <div class="skeleton-button">👍</div>
+    <div class="skeleton-button">❤️</div>
+    <div class="skeleton-button">🚀</div>
+    <div class="skeleton-count">Loading...</div>
+  </div>
+<% end %>
+```
+
+#### 2. CSS Class Placeholder (Design System Friendly)
+```erb
+<%= react_component("Reactions", { postId: post.id }, {
+  placeholder_class: "reactions-skeleton"
+}) %>
+```
+
+#### 3. Inline Style Placeholder (Quick & Simple)
+```erb
+<%= react_component("Reactions", { postId: post.id }, {
+  placeholder_style: "height: 40px; background: #f8f9fa; border-radius: 4px;"
+}) %>
+```
+
+### How It Works
+
+1. **Placeholder renders** immediately with your ERB content or styles
+2. **React mounts** and automatically replaces the entire container contents
+3. **Zero manual cleanup** - React's natural DOM replacement handles removal
+4. **On mount errors** - placeholder stays visible as graceful fallback
+
+### Perfect for Turbo Streams
+
+Placeholders shine in Turbo Stream scenarios where content updates dynamically:
+
+```erb
+<!-- app/views/posts/_reactions.html.erb -->
+<%= turbo_stream.replace "post_#{@post.id}_reactions" do %>
+  <%= react_component("Reactions", { 
+    postId: @post.id, 
+    initialCount: @post.reactions.count 
+  }) do %>
+    <div class="reactions-placeholder" style="height: 32px;">
+      <span class="text-muted">Loading reactions...</span>
+    </div>
+  <% end %>
+<% end %>
+```
+
+### Benefits
+
+- ✅ **Eliminates layout shift** during component mounting
+- ✅ **Turbo Stream compatible** - perfect for dynamic updates  
+- ✅ **Zero JavaScript required** - handled automatically by the helper
+- ✅ **Graceful degradation** - placeholder persists if React fails to load
+- ✅ **Design system friendly** - use your existing skeleton/loading styles
+- ✅ **Performance optimized** - leverages React's natural DOM clearing
 
 ## Turbo Cache Integration
 

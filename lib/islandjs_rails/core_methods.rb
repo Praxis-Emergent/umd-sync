@@ -398,7 +398,8 @@ module IslandjsRails
       response = Net::HTTP.get_response(uri)
       
       if response.code == '200'
-        response.body
+        # Force UTF-8 encoding to avoid encoding errors when writing to file
+        response.body.force_encoding('UTF-8')
       else
         raise IslandjsRails::Error, "Failed to download UMD from #{url}: #{response.code}"
       end
