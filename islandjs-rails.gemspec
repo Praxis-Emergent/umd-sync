@@ -6,8 +6,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Eric Arnold"]
   spec.email         = ["ericarnold00+praxisemergent@gmail.com"]
 
-  spec.summary       = "JavaScript islands for Rails with zero webpack complexity"
-  spec.description   = "IslandJS Rails enables React, Vue, and other JavaScript islands in Rails apps with zero webpack complexity. Load UMD libraries from CDNs, integrate with ERB partials, and render components with Turbo-compatible lifecycle management."
+  spec.summary       = "Simple, modern JavaScript islands for Rails"
+  spec.description   = "IslandJS Rails enables React and other JavaScript islands in Rails apps with zero webpack configuration. Load UMD libraries from CDNs, integrate with ERB partials, and render components with Turbo-compatible lifecycle management."
   spec.homepage      = "https://github.com/praxis-emergent/islandjs-rails"
   spec.license       = "MIT"
   spec.required_ruby_version = ">= 3.0.0"
