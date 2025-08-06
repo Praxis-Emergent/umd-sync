@@ -687,16 +687,6 @@ bundle exec rspec
 open coverage/index.html
 ```
 
-## Adding New Tests
-
-When adding new IslandJS Rails functionality:
-
-1. Add tests to the appropriate test file
-2. Use the provided test helpers for consistency
-3. Mock external dependencies (CDN calls, file system operations)
-4. Test both success and failure scenarios
-5. Ensure tests are isolated and don't affect each other
-
 ## Future Enhancements
 
 Planned features for future releases:
