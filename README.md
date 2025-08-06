@@ -95,7 +95,7 @@ function DashboardApp({ containerId }) {
 export default DashboardApp;
 ```
 
-### ⚠️ Important ⚠️
+### Important
 Do not pass sensitive data to the client-side via props. Pass it any other (secure) way — props are encoded in the HTML and are visible to the client and any other scripts.
 
 ## Why IslandJS Rails?
