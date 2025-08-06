@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/islandjs_rails'
+require 'islandjs_rails/cli'
+
+IslandjsRails::CLI.start(ARGV)

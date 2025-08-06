@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        ruby-version: ['3.4.5']
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+        
+    - name: Install dependencies
+      run: |
+        bundle install
+        yarn install
+        
+    - name: Run RSpec tests
+      run: bundle exec rspec
+      
+    - name: Run RuboCop (if present)
+      run: |
+        if bundle show rubocop > /dev/null 2>&1; then
+          bundle exec rubocop
+        else
+          echo "RuboCop not found, skipping..."
+        fi
+      continue-on-error: true

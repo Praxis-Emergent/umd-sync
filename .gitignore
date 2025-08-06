@@ -1,0 +1,45 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+*.bundle
+*.so
+*.o
+*.a
+mkmf.log
+Gemfile.lock
+
+.claude/
+
+# SimpleCov
+coverage/
+coverage.json
+
+# VCR cassettes (optional - you might want to commit these)
+spec/fixtures/vcr_cassettes/
+
+# RSpec
+.rspec_status 
+# IslandJS: Node.js dependencies
+/node_modules
+yarn.lock
+
+# IslandJS: Track webpack bundles for deployment
+!/public/islandjsRailsManifest.json
+!/public/islandjsRailsBundle.js
+
+# IslandJS: Track built assets
+!/public/islandjsRails*.js
+!/public/islandjsRails*.json
+
+# IslandJS: Track webpack bundles for deployment
+!/public/islandjs_rails_manifest.json
+!/public/islandjs_rails_bundle.js
+
+# IslandJS: Track webpack bundles for deployment
+!/public/islands_manifest.json
+!/public/islands_bundle.js
