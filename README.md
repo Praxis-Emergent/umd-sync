@@ -667,30 +667,6 @@ rails islandjs:install[react]
 
 MIT License - see LICENSE file for details.
 
-## Structure
-
-```
-lib/islandjs_rails/
-├── spec/
-│   ├── spec_helper.rb                    # Test setup and mocking
-│   ├── lib/
-│   │   ├── islandjs_rails_spec.rb             # Main module tests
-│   │   └── islandjs_rails/
-│   │       ├── core_spec.rb             # Core functionality tests
-│   │       ├── rails_helpers_spec.rb    # Rails helpers tests
-│   │       ├── configuration_spec.rb    # Configuration tests
-│   │       ├── cli_spec.rb             # CLI tests
-│   │       ├── tasks_spec.rb           # Rake tasks tests
-│   │       ├── railtie_spec.rb         # Rails integration tests
-│   │       └── rails8_integration_spec.rb # Rails 8 specific tests
-│   ├── fixtures/                        # Test fixtures
-│   └── support/                         # Test support files
-├── coverage/                            # SimpleCov coverage reports
-├── Gemfile                              # Test dependencies
-├── Rakefile                             # Test runner configuration
-└── README.md                            # This file
-```
-
 ## Running Tests
 
 ### From the gem directory:
