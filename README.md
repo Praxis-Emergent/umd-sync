@@ -105,6 +105,9 @@ Modern Rails developers face a painful choice:
 ```bash
 # Instead of complex webpack configuration:
 rails "islandjs:install[react,18.3.1]"
+rails "islandjs:install[react-beautiful-dnd]"
+rails "islandjs:install[quill]"
+rails "islandjs:install[recharts]"
 rails "islandjs:install[lodash]"
 ```
 
