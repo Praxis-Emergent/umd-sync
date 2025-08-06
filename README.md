@@ -211,7 +211,7 @@ yarn install
 **Development Workflow:**
 1. Run `yarn watch` (or `npm run watch`) in one terminal
 2. Edit your components in `app/javascript/islands/components/`
-3. Changes are automatically compiled to `public/islands_bundle.js`
+3. Changes are automatically compiled to `public/`
 
 **Production Deployment:**
 1. Run `yarn build` (or `npm run build`) to create optimized bundle
