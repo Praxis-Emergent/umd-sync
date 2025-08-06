@@ -103,7 +103,7 @@ Modern Rails developers face a painful choice:
 
 ### The IslandJS Rails Solution
 ```bash
-# Instead of complex webpack configuration:
+# Instead of complex vite/webpack configuration:
 rails "islandjs:install[react,18.3.1]"
 rails "islandjs:install[react-beautiful-dnd]"
 rails "islandjs:install[quill]"
@@ -112,6 +112,14 @@ rails "islandjs:install[lodash]"
 ```
 
 **Result**: Zero-to-no webpack configuration, instant prod builds, access to hundreds of UMD packages.
+
+### Access UMD installed JS packages via the window from within React components:
+```bash
+\\ in SomeComponent.jsx
+const quill = new window.Quill("#editor", {
+  theme: "snow",
+});
+```
 
 ## Rails 8 Ready
 
