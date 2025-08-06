@@ -52,7 +52,7 @@ yarn watch
 
 ### Build For Production
 ```bash
-yarn build # removes any stales files & rebuilds latest islandjs bundle for a clean commit
+yarn build # you may remove any stale islandjs bundles before commit
 ```
 
 > 💡 **Turbo Cache Compatible**: React components automatically persist state across Turbo navigation! See [Turbo Cache Integration](#turbo-cache-integration) for details.
