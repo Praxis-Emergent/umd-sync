@@ -26,7 +26,6 @@ spec/fixtures/vcr_cassettes/
 .rspec_status 
 # IslandJS: Node.js dependencies
 /node_modules
-yarn.lock
 
 # IslandJS: Track webpack bundles for deployment
 !/public/islandjsRailsManifest.json
