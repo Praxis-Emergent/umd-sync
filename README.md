@@ -707,8 +707,6 @@ Planned features for future releases:
 - **TypeScript Support**: First-class TypeScript support for UMD packages
 - **Local UMD Generation**: Generate UMD builds for packages that don't ship them
 - **Multi-framework Support**: Vue, Svelte, and other frameworks
-- **Build-time Optimization**: Optional build-time bundling for production
-- **Edge Computing**: Cloudflare Workers and similar platform support
 
 ---
 
