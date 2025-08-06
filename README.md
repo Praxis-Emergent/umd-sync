@@ -34,6 +34,11 @@ rails "islandjs:install[react,18.3.1]"
 rails "islandjs:install[react-dom,18.3.1]"
 ```
 
+### Run Yarn In Development
+```bash
+yarn watch
+```
+
 ### Render React Components
 ```erb
 <!-- In any view -->
@@ -43,6 +48,11 @@ rails "islandjs:install[react-dom,18.3.1]"
 <%= react_component('DashboardApp', { userId: current_user.id }) do %>
   <div class="loading-skeleton">Loading dashboard...</div>
 <% end %>
+```
+
+### Build For Production
+```bash
+yarn build # removes any stales files & rebuilds latest islandjs bundle for a clean commit
 ```
 
 > 💡 **Turbo Cache Compatible**: React components automatically persist state across Turbo navigation! See [Turbo Cache Integration](#turbo-cache-integration) for details.
