@@ -108,8 +108,8 @@ IslandJS Rails aligns perfectly with **Rails 8's philosophy** of simplicity and 
 
 ### The Problem IslandJS Rails Solves
 Modern Rails developers face a painful choice:
-- **Bundle everything**: Massive webpack configs, slow builds, bundle bloat
-- **Skip modern JS**: Miss out on React and popular npm packages
+- **Bundle everything**: Complicated configs, slow builds, bundle bloat
+- **Skip modern JS**: Miss out on React and other modern frontend tools
 
 **IslandJS Rails offers a middle way:** a simple, zero-config solution for adding React and other JS libraries to your Rails app. Get 80% of reactive use cases covered for 5% of the hassle. Most apps don't even need the other 20% anyway.
 
