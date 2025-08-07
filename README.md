@@ -1,13 +1,13 @@
 # IslandJS Rails — Turbo compatible JSX in seconds
 
-Launch quickly, upgrade to vite only when needed.
+**Launch quickly:** *upgrade with vite only if necessary (MYAGNI).*
 
 [![CI](https://github.com/praxis-emergent/islandjs-rails/actions/workflows/github-actions-demo.yml/badge.svg)](https://github.com/praxis-emergent/islandjs-rails/actions/workflows/github-actions-demo.yml)
 [![Test Coverage](https://img.shields.io/badge/coverage-89.09%25-brightgreen.svg)](coverage/index.html)
 [![RSpec Tests](https://img.shields.io/badge/tests-162%20passing-brightgreen.svg)](spec/)
 [![Rails 8 Ready](https://img.shields.io/badge/Rails%208-Ready-brightgreen.svg)](#rails-8-ready)
 
-IslandJS Rails supports the development of React (or other JS library) islands in Rails apps by synchronizing `package.json` defined dependencies with UMD libraries served in `public/islands/vendor`.
+IslandJS Rails supports the development of React islands in Rails apps by synchronizing `package.json` dependencies with UMD libraries served in `public/islands/vendor`.
 
 Write Turbo compatible JSX in `app/javascript/islands/components/` and render it with a `react_component` helper in ERB templates (including Turbo Stream partials) — Vue and other framework support can be added with a bit of work.
 
