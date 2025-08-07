@@ -114,6 +114,8 @@ Modern Rails developers face a painful choice:
 - **Bundle everything**: Massive webpack configs, slow builds, bundle bloat
 - **Skip modern JS**: Miss out on React and popular npm packages
 
+IslandJS Rails offers a middle way: a simple, zero-config solution for adding React and other JS libraries to your Rails app. Get 80% of reactive use cases covered for 5% of the hassle.
+
 **Important Note:** IslandJS Rails works with packages that ship UMD builds. Many popular packages have UMD builds, but some modern packages do not — React 19+ removed UMD builds entirely. Future versions of IslandJS Rails will support local UMD generation for some packages (such as [React 19+](https://github.com/lofcz/umd-react)).
 
 ### The IslandJS Rails Solution
