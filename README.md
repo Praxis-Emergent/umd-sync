@@ -9,7 +9,7 @@
 
 IslandJS Rails supports the development of React islands in Rails apps by synchronizing `package.json` dependencies with UMD libraries served in `public/islands/vendor`.
 
-Write Turbo compatible JSX in `app/javascript/islands/components/` and render it with a `react_component` helper in ERB templates (including Turbo Stream partials) — Vue and other framework support can be added with a bit of work.
+Write Turbo compatible JSX in `app/javascript/islands/components/` and render it with a `react_component` helper in ERB templates (including Turbo Stream partials) — **Vue and other framework support can be added with a bit of work**.
 
 ## Quick Start
 
