@@ -112,8 +112,6 @@ Modern Rails developers face a painful choice:
 
 **IslandJS Rails offers a middle way:** a simple, zero-config solution for adding React and other JS libraries to your Rails app. Get 80% of reactive use cases covered for 5% of the hassle. Most apps don't even need the other 20% anyway.
 
-**Important Note:** IslandJS Rails works with packages that ship UMD builds. Many popular packages have UMD builds, but some modern packages do not — React 19+ removed UMD builds entirely. Future versions of IslandJS Rails will support local UMD generation for some packages (such as [React 19+](https://github.com/lofcz/umd-react)).
-
 ### The IslandJS Rails Solution
 ```bash
 # Instead of complex vite/webpack configuration:
@@ -134,7 +132,16 @@ const quill = new window.Quill("#editor", {
 });
 ```
 
-## Rails 8 Ready
+**Important Note:** IslandJS Rails works with packages that ship UMD builds. Many popular packages have UMD builds, but some modern packages do not — React 19+ removed UMD builds entirely. Future versions of IslandJS Rails will support local UMD generation for some packages (such as [React 19+](https://github.com/lofcz/umd-react)).
+
+If you absolutely need a package that doesn't ship UMD builds, you have a few options:
+
+- Option A: Find an alternative lib that supports UMD builds
+- Option B: Build the UMD yourself & serve it like a normal `islandjs-rails` install
+- Option C: Write vanilla JS for the use case
+- Option D: Set up `vite` with [turbo-mount](https://github.com/skryukov/turbo-mount) & write your component that way. You can migrate incrementally from `islandj-rails` to `turbo-mount` if preferred — they can coexist in the same app.
+
+## IslandJS Rails is Rails 8 Ready
 
 ✅ **Tested against Rails 8**  
 ✅ **Compatible with Rails 8 asset pipeline**  
