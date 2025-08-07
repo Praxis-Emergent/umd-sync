@@ -54,7 +54,7 @@ yarn watch
 
 ### Build For Production
 ```bash
-yarn build # you may remove any stale islandjs bundles before commit
+yarn build # you may remove any stale islandjs bundles before committing
 ```
 
 > 💡 **Turbo Cache Compatible**: React components automatically persist state across Turbo navigation! See [Turbo Cache Integration](#turbo-cache-integration) for details.
@@ -97,9 +97,6 @@ function DashboardApp({ containerId }) {
 export default DashboardApp;
 ```
 
-### Important
-Do not pass sensitive data to the client-side via props. Pass it any other (secure) way — props are encoded in the HTML and are visible to the client and any other scripts.
-
 ## Why IslandJS Rails?
 
 ### Perfect for Rails 8
@@ -114,7 +111,7 @@ Modern Rails developers face a painful choice:
 - **Bundle everything**: Massive webpack configs, slow builds, bundle bloat
 - **Skip modern JS**: Miss out on React and popular npm packages
 
-IslandJS Rails offers a middle way: a simple, zero-config solution for adding React and other JS libraries to your Rails app. Get 80% of reactive use cases covered for 5% of the hassle.
+**IslandJS Rails offers a middle way:** a simple, zero-config solution for adding React and other JS libraries to your Rails app. Get 80% of reactive use cases covered for 5% of the hassle. Most apps don't even need the other 20% anyway.
 
 **Important Note:** IslandJS Rails works with packages that ship UMD builds. Many popular packages have UMD builds, but some modern packages do not — React 19+ removed UMD builds entirely. Future versions of IslandJS Rails will support local UMD generation for some packages (such as [React 19+](https://github.com/lofcz/umd-react)).
 
