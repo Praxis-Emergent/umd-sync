@@ -244,13 +244,13 @@ When installing scoped packages, you **must** include the full package name with
 
 ```bash
 # ✅ Correct - Full scoped package name
-rails "islandjs:install[@solana/web3.js,1.98.2]"
+rails "islandjs:install[@solana/web3.js,1.98.4]"
 
 # ❌ Incorrect - Missing .js suffix
-rails "islandjs:install[@solana/web3,1.98.2]"
+rails "islandjs:install[@solana/web3,1.98.4]"
 
 # ❌ Incorrect - Missing scope
-rails "islandjs:install[web3.js,1.98.2]"
+rails "islandjs:install[web3.js,1.98.4]"
 ```
 
 ### Shell Escaping
@@ -262,7 +262,7 @@ The `@` symbol is handled automatically by Rails task syntax when using double q
 rails "islandjs:install[@solana/web3.js]"
 
 # ✅ Also works (with version)
-rails "islandjs:install[@solana/web3.js,1.98.2]"
+rails "islandjs:install[@solana/web3.js,1.98.4]"
 
 # ⚠️ May not work in some shells without quotes
 rails islandjs:install[@solana/web3.js]  # Avoid this
