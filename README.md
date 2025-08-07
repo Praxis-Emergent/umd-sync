@@ -6,7 +6,6 @@ Launch quickly, upgrade to vite only when needed.
 [![Test Coverage](https://img.shields.io/badge/coverage-89.09%25-brightgreen.svg)](coverage/index.html)
 [![RSpec Tests](https://img.shields.io/badge/tests-162%20passing-brightgreen.svg)](spec/)
 [![Rails 8 Ready](https://img.shields.io/badge/Rails%208-Ready-brightgreen.svg)](#rails-8-ready)
-[![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.0-red.svg)](https://www.ruby-lang.org/)
 
 IslandJS Rails supports the development of React (or other JS library) islands in Rails apps by synchronizing `package.json` defined dependencies with UMD libraries served in `public/islands/vendor`.
 
