@@ -1,4 +1,4 @@
-# IslandJS Rails | Turbo compatible JSX in seconds
+# IslandJS Rails — Turbo compatible JSX in seconds
 
 Launch quickly, upgrade to vite only when needed.
 
