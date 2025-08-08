@@ -229,6 +229,12 @@ module IslandjsRails
       html_safe_string(partials)
     end
 
+    # Generate a script tag for vendor JavaScript files
+    # Useful for including third-party libraries from the vendor directory
+    def extra_vendor_tag(name, extension = ".min.js")
+      "<script src='/vendor/#{name}#{extension}' data-turbo-track='reload'></script>".html_safe
+    end
+
     private
 
     # Find the bundle file path (with manifest support)

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "rm -f public/islands_bundle.*.js && NODE_ENV=production webpack",
-    "build:dev": "rm -f public/islands_bundle.*.js && NODE_ENV=production webpack",
+    "build": "rm -f public/islands_* && NODE_ENV=production webpack",
+    "build:dev": "rm -f public/islands_* && NODE_ENV=production webpack",
     "watch": "NODE_ENV=development webpack --watch"
   },
   "dependencies": {},
