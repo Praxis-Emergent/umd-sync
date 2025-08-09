@@ -387,4 +387,27 @@ RSpec.describe IslandjsRails::RailsHelpers do
       expect(result).to include('UMD Error: Test error')
     end
   end
+
+  describe '#extra_vendor_tag' do
+    it 'generates script tag with default .min.js extension' do
+      result = view_context.extra_vendor_tag('jquery')
+      
+      expect(result).to eq("<script src='/vendor/jquery.min.js' data-turbo-track='reload'></script>")
+      expect(result).to be_html_safe
+    end
+    
+    it 'generates script tag with custom extension' do
+      result = view_context.extra_vendor_tag('bootstrap', '.js')
+      
+      expect(result).to eq("<script src='/vendor/bootstrap.js' data-turbo-track='reload'></script>")
+      expect(result).to be_html_safe
+    end
+    
+    it 'handles library names with special characters' do
+      result = view_context.extra_vendor_tag('my-library_v2')
+      
+      expect(result).to eq("<script src='/vendor/my-library_v2.min.js' data-turbo-track='reload'></script>")
+      expect(result).to be_html_safe
+    end
+  end
 end 
