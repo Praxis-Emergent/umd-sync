@@ -349,6 +349,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
 
   describe '#islands' do
     it 'includes both partials and bundle script' do
+      allow(view_context).to receive(:umd_debug_enabled?).and_return(false)
       result = view_context.islands
       
       expect(result).to be_html_safe
@@ -358,6 +359,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
 
   describe '#umd_versions_debug' do
     it 'shows debug info in development' do
+      allow(view_context).to receive(:umd_debug_enabled?).and_return(true)
       # Mock the core.installed_packages method and supported_package? calls
       allow(IslandjsRails.core).to receive(:send).with(:installed_packages).and_return(['react', 'lodash'])
       allow(IslandjsRails.core).to receive(:send).with(:supported_package?, 'react').and_return(true)
@@ -379,6 +381,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
     end
     
     it 'shows error message when debugging fails' do
+      allow(view_context).to receive(:umd_debug_enabled?).and_return(true)
       # Mock the core.installed_packages to raise an error at the method level
       allow(IslandjsRails.core).to receive(:send).with(:installed_packages).and_raise(StandardError.new('Test error'))
       

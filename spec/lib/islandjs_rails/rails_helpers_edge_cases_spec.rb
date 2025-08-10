@@ -143,6 +143,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
       end
 
       it 'returns debug div with package versions' do
+        allow(view_context).to receive(:umd_debug_enabled?).and_return(true)
         result = view_context.umd_versions_debug
         expect(result).to include('UMD:')
         expect(result).to include('18.0.0')
@@ -155,6 +156,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
         end
 
         it 'returns no packages message' do
+          allow(view_context).to receive(:umd_debug_enabled?).and_return(true)
           result = view_context.umd_versions_debug
           expect(result).to include('UMD: No packages')
         end
@@ -166,6 +168,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
         end
 
         it 'shows error in version display' do
+          allow(view_context).to receive(:umd_debug_enabled?).and_return(true)
           result = view_context.umd_versions_debug
           expect(result).to include('error')
         end
@@ -177,6 +180,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
         end
 
         it 'returns error div' do
+          allow(view_context).to receive(:umd_debug_enabled?).and_return(true)
           result = view_context.umd_versions_debug
           expect(result).to include('UMD Error: Core error')
           expect(result).to include('background: #f00')
@@ -232,6 +236,7 @@ RSpec.describe IslandjsRails::RailsHelpers do
       allow(view_context).to receive(:island_partials).and_return('<script>partials</script>')
       allow(view_context).to receive(:island_bundle_script).and_return('<script>bundle</script>')
       allow(view_context).to receive(:umd_versions_debug).and_return('<div>debug</div>')
+      allow(view_context).to receive(:umd_debug_enabled?).and_return(true)
       allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('development'))
     end
 

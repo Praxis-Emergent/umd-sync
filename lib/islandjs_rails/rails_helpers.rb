@@ -5,7 +5,7 @@ module IslandjsRails
       output = []
       output << island_partials  # Now uses vendor UMD partial
       output << island_bundle_script
-      output << umd_versions_debug if Rails.env.development?
+      output << umd_versions_debug if umd_debug_enabled?
       output.compact.join("\n").html_safe
     end
 
@@ -181,7 +181,7 @@ module IslandjsRails
 
     # Legacy UMD helper methods for backward compatibility with tests
     def umd_versions_debug
-      return unless Rails.env.development?
+      return unless umd_debug_enabled?
       
       begin
         installed = IslandjsRails.core.send(:installed_packages)
@@ -236,6 +236,16 @@ module IslandjsRails
     end
 
     private
+
+    # Whether the floating UMD versions debug footer should render
+    def umd_debug_enabled?
+      return false unless Rails.env.development?
+
+      env_value = ENV['ISLANDJS_RAILS_SHOW_UMD_DEBUG']
+      return false if env_value.nil?
+
+      %w[1 true yes on].include?(env_value.to_s.strip.downcase)
+    end
 
     # Find the bundle file path (with manifest support)
     def find_bundle_path
