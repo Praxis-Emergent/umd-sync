@@ -371,7 +371,6 @@ IslandjsRails.configure do |config|
   
   # Path to the islands manifest JSON used by the helper to inject the bundle
   # Default: Rails.root.join('public', 'islands_manifest.json')
-  # Note: helpers read ONLY from this config (no ENV fallback)
   config.manifest_path = Rails.root.join('public', 'islands_manifest.json')
 
   # Vendor file delivery mode (default: :external_split)

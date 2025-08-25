@@ -23,7 +23,6 @@ module IslandjsRails
 
     # Render the main IslandJS bundle script tag
     def island_bundle_script
-      # Use configured manifest_path only
       manifest_path = IslandjsRails.configuration.manifest_path
 
       bundle_path = '/islands_bundle.js'
@@ -251,7 +250,6 @@ module IslandjsRails
 
     # Find the bundle file path (with manifest support)
     def find_bundle_path
-      # Try manifest first (production) via configured path only
       manifest_path = IslandjsRails.configuration.manifest_path
       
       if File.exist?(manifest_path)
