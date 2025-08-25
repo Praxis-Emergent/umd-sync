@@ -369,6 +369,11 @@ IslandjsRails.configure do |config|
   # Webpack configuration path
   config.webpack_config_path = Rails.root.join('webpack.config.js')
   
+  # Path to the islands manifest JSON used by the helper to inject the bundle
+  # Default: Rails.root.join('public', 'islands_manifest.json')
+  # Note: helpers read ONLY from this config (no ENV fallback)
+  config.manifest_path = Rails.root.join('public', 'islands_manifest.json')
+
   # Vendor file delivery mode (default: :external_split)
   config.vendor_script_mode = :external_split    # One file per library
   # config.vendor_script_mode = :external_combined # Single combined bundle
@@ -617,37 +622,6 @@ module.exports = {
     'lodash': '_'
   }
 };
-```
-
-### Configuration Options
-
-```ruby
-IslandjsRails.configure do |config|
-  # Directory for ERB partials (default: app/views/shared/islands)
-  config.partials_dir = Rails.root.join('app/views/shared/islands')
-  
-  # Path to webpack config (default: webpack.config.js)
-  config.webpack_config_path = Rails.root.join('webpack.config.js')
-  
-  # Path to package.json (default: package.json)
-  config.package_json_path = Rails.root.join('package.json')
-  
-  # Vendor file delivery mode (default: :external_split)
-  config.vendor_script_mode = :external_split    # One file per library
-  # config.vendor_script_mode = :external_combined # Single combined bundle
-  
-  # Vendor files directory (default: public/islands/vendor)
-  config.vendor_dir = Rails.root.join('public/islands/vendor')
-  
-  # Combined bundle filename base (default: 'islands-vendor')
-  config.combined_basename = 'islands-vendor'
-  
-  # Library loading order for combined bundles
-  config.vendor_order = ['react', 'react-dom', 'lodash']
-  
-  # Built-in global name mappings are automatically applied
-  # No custom configuration needed for common libraries
-end
 ```
 
 ## Troubleshooting
