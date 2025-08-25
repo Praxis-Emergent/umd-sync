@@ -3,7 +3,8 @@ require 'pathname'
 module IslandjsRails
   class Configuration
     attr_accessor :package_json_path, :partials_dir, :webpack_config_path, :supported_cdns,
-                  :vendor_script_mode, :vendor_order, :vendor_dir, :combined_basename
+                  :vendor_script_mode, :vendor_order, :vendor_dir, :combined_basename,
+                  :manifest_path
 
     def initialize
       @package_json_path = Rails.root.join('package.json')
@@ -17,6 +18,8 @@ module IslandjsRails
         'https://unpkg.com',
         'https://cdn.jsdelivr.net/npm'
       ]
+      # Default path to islands manifest (override in initializer if needed)
+      @manifest_path = Rails.root.join('public', 'islands_manifest.json')
     end
 
 
